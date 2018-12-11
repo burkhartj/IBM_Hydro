@@ -169,6 +169,7 @@
       inds$Patch.X[i] <- ponds[ponds$Pond.ID %in% inds$Nat.Pond[i], "Pond.X"] + inds$Disp.Dist[i] * sin((inds$Init.Angle[i])*(pi/180))
       inds$Patch.Y[i] <- ponds[ponds$Pond.ID %in% inds$Nat.Pond[i], "Pond.Y"] + inds$Disp.Dist[i] * cos((inds$Init.Angle[i])*(pi/180))
 
+      
         # repeat{
           ## extract patch K, patch coords
           ## patch.inds <- dim(subset(inds, Patch.X == inds$Patch.X[i] & Patch.Y[i]))[1]
