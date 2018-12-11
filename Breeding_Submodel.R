@@ -4,13 +4,18 @@
 ## By: J. Burkhart and B. Ousterhout
 ## ---------------------------------------------------------
 
+## Load Packages:
+## --------------
+  if(!require(actuar)) install.packages('actuar'); library('actuar')
+## --------------
+
 ## Initialize Models:
 ## ------------------
   ## Input Parameters to automate changes:
     n.inds <- 50
     n.ponds <- 8
     n.patch <- 144
-    n.gens <- 200
+    n.gens <- 100
     
     K.mult <- 2.25
     
@@ -51,7 +56,11 @@
     # hydro.4.sd <-   
     
     temp.terrestrial.K <- n.patch * 180            ## DELETE LATER. WILL BE IRRELEVANT ONCE THE SPATIAL STUFF IS INCORPORATED
-      
+  
+  ## Create Data Frame of Patches (eventually pull pond coordinates from the landscape submodel)
+    
+    
+        
   ## Create Data Frame of Individuals:  inds-own [age, sex, svl, loci, my-land-home (Nat.Patch), my-natal-pond (Nat.Pond),  my-breed-pond (Breed.Pond), can-breed (Rep.Active), years-since-breed (IBI)]
   inds <- data.frame(Sex = sample(c("M", "F"), n.inds, replace=T), 
                      Age = sample(0:round(max.age / 2), n.inds, T), 
@@ -102,9 +111,9 @@
       inds$LocD[i] <- paste0(sample(seq(241, 261, by=2), 1), ":", sample(seq(241, 261, by=2), 1))
       
       ## Intialize Dispersal Data: 
-      inds$Init.Angle[i] <- round(runif(n.off, 1, 360)) 
-      inds$Disp.Dist[i] <- rnorm(1, mean=1600, sd=500)
-        
+      inds$Init.Angle[i] <- round(runif(1, 1, 360)) 
+      inds$Disp.Dist[i] <- rllogis(1, shape=1.5, scale=30)
+      
         ## Pick intial angle and dispersal distance. Check the patch K. 
         ## If less than K/2, assign individual here. If not, re-draw angle and distance.  
     }
@@ -140,7 +149,8 @@
 #      pch=16, col="white", xlab="Age (years)", ylab="# Individuals")
 
 inds0 <- inds    
-    
+
+start.time <- Sys.time()       
 for(g in 1:n.gens){    
   ## Set Up Breeding Functionality
   p.sub <- subset(ponds, Hydroperiod >= min.hydro)   ## Subset out the pond with non-suitable hydroperiods
@@ -188,7 +198,7 @@ for(g in 1:n.gens){
           num.off$Disp.Prob <- round(rbeta(n.off, disp.beta1, disp.beta2), 3)     ## create a vector of dispersal probability
           num.off$Breed.Pond <- ifelse(num.off$Disp.Prob > philo.rate, yes=sample(unique(ponds$Pond.ID), 1, T), no=num.off$Nat.Pond)
           num.off$Init.Angle <- round(runif(n.off, 1, 360))              ## choose initial movement angle
-          num.off$Disp.Dist <- numeric(n.off) ## rgamma(n.off, ...)      ## Peterman et al. 2015 dispersal distance for A. annulatum?
+          num.off$Disp.Dist <- rllogis(1, shape=1.5, scale=30)           ## Peterman et al. 2015 dispersal distance for A. annulatum? 1,693m (95% CI 1,645-1,740 m for AMAN)
           num.off$Mort.Prob <- numeric(n.off)                            ## empty vector for later imposing mortality 
           num.off$Bred <- rep(0, times=n.off)                            ## vector of zeros for breeding
           num.off$Generation <- rep(g, times=n.off)                      ## vector to store generation of origin 
@@ -275,10 +285,10 @@ for(g in 1:n.gens){
 
   # print(lines(x=density(inds$Age)$x, 
   #            y=density(inds$Age)$y * length(inds$Age), type="l"))
-  print(paste0("Gen - ", g))
-  print(paste0("Total # Inds = ", dim(inds)[1], "; Terrestrial K = ", temp.terrestrial.K))
+  print(paste0("Generation = ", g, " --- Total # Inds = ", dim(inds)[1], "; Terrestrial K = ", temp.terrestrial.K))
+  print(round(Sys.time() - start.time, 2))
 } ## end generations loop
-
+print(round(Sys.time() - start.time, 2))         ## end timer
 
   
 ## --------------------
@@ -311,5 +321,5 @@ for(g in 1:n.gens){
          xlab="Age (years)", ylab="Rep. Active (yes/no)")
     
     
-    
+    Sys.time("min")
 ## ----------------------
