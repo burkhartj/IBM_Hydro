@@ -2,7 +2,6 @@
 # Works well for one individual with fixed step length
 # 
 # To do:
-# Tweak so can iterate through a lot of animals
 # Integrate with landscape module
 # Add in sensing for deciding when to stop
 ################################################
@@ -18,20 +17,20 @@ starty <- 0          ## y-coordinate of displacement location
 ## Parameters to Change
 disp.x <- startx             ## distance lizard displaced in the x-dimension
 disp.y <- starty             ## distance lizard displaced in the y-dimension
-#home.radius <- 100            ## radius in which salamander can detect pond (100 m)
-#n.dist.max <- rllogis(n = 1500, shape = 1.5, scale = 30)  ## number of movements allowed per individual
-n.ind <- 1              ## number of lizards to test per trial
+#sensing.dist <- 30          ## radius in which salamander can detect ponds / neighbors (30 m)
+n.ind <- 10              ## number of lizards to test per trial
 n.trials <- 1            ## number of trials to run the lizard for
-final.dist <- NULL           ## stores the final distance for each individual lizard
+
+#Parameters to save from model runs
+max.dispersal.dist <- NULL         ## Stores the max distance can disperse for each individual
 total.dist <- NULL           ## stores the total distance traveled for each lizard
 ind.moves <- NULL         ## stores the total number of moves for each lizard     
+die <- 0
 
 ## Simulation Code
 start_time <- Sys.time()         ## Start timer for running code 
-repeat{                          ## Loop over number of trials
-  #success <- NULL                ## create empty vector for success
   run.steps <- NULL              ## create empty vector for storing the number of movment steps made during trial
-  # plot.lizard <- sample(x = 1:n.lizards, 1)   ## select a random lizard to plot
+  plot.lizard <- sample(x = 1:n.ind, 1)   ## select a random lizard to plot
   
   repeat{                ## Loop over number of lizards for each trial
     new.x <- 0                   ## create starting x-coordinate of displacement?
@@ -39,11 +38,11 @@ repeat{                          ## Loop over number of trials
     x <- NULL                    ## create empty vector for storing x-coordinates
     y <- NULL                    ## create empty vector for storing y-coordinates 
     dist <- NULL                 ## create empty vector for storing distances from home
+    die.disp <- 0
     new.ang <- sample(angle, replace = TRUE, size = 1)     ## randomly select an initial angle
     dist.max <- rllogis(n = 1, shape = 1.5, scale = 30)  ## number of movements allowed per individual
     ang <- NULL                  ## create empty vector for storing movement angles? 
     dist.traveled <- 0             ## create object for storing the individual lizard movement information
-    fin.dist <- NULL             ## create object for storing the final distance per individual (fixes bug in code)
 
     repeat{              ## Loop over number of movment steps (run.steps) for each lizard 
       new.ang <- rnorm(n = 1, mean = new.ang, sd = 10)     ## randomly select an angle
@@ -58,71 +57,33 @@ repeat{                          ## Loop over number of trials
       dist <- c(dist, dist.traveled)                              ## create vector of distances from home for each movement step
       ang <- c(ang, new.ang)                                  ## create vector of angles for each movement step
      
-      #If reach home radius, move on to next individual
-      if (dist.traveled >= dist.max) {break}
+      #If find available home, move on to next individual
+      if (dist.traveled >= dist.max) {
+        die.disp <- die.disp + 1
+        break}
       #if (dist.home <= home.radius | length(dist) == n.moves+1) {break}     ## exit repeat loop if distance is less than 20 meters or if greater than 1000 movement steps
       
       dist.traveled <- dist.traveled + new.move    ## calculate the total distance traveled for the lizard
-      fin.dist <- dist.traveled                    ## if lizard has not homed or timed out, update final distance          
     }
     
-    #dum.dist <- ifelse(length(dist) == n.moves+1, yes=fin.dist, no=dist.home)
-    final.dist <- c(final.dist)                    ## store final distance to home for each lizard
-    total.dist <- c(total.dist, dist.travel)                 ## store total distance traveled for each lizard
+    total.dist <- c(total.dist, dist.traveled)                 ## store total distance traveled for each lizard
+    max.dispersal.dist   <- c(max.dispersal.dist, dist.max)
     run.steps <- c(run.steps, length(dist))                  ## create vector of movement steps made to reach home
-    
-    ## plot lizard locations
-      # if(length(dist) < n.moves){
-      #   tiff(paste0("Homing-Success_Plot_Trial_", length(no.success)+1,"_Lizard_", length(run.steps), ".tiff"), res=250, width=12.35, height=12.35, units="cm", compression=c("lzw"))
-      #   plot(x=x, y=y, type="l", ylim=c(0, (max(y)+5)),
-      #        main=paste0("Trial #", length(no.success)+1," - Lizard #", length(run.steps)))  ## plot the x-y locations for lizard as a line
-      #   points(x=homex, y=homey, col='blue', cex=1.5, pch=16)                                ## plot "home" location for lizard (0,0)
-      #   points(x=homex, y=homey, cex=1.5)
-      #   points(x=startx, y=starty, col='yellow', cex=1.5, pch=16)                            ## plot displacement location
-      #   points(x=startx, y=starty, cex=1.5)
-      #   points(x=x[length(x)], y=y[length(y)], col='red', cex=1.5, pch=16)                   ## plot final lizard location
-      #   points(x=x[length(x)], y=y[length(y)], cex=1.5)
-      #   dev.off()
-      # }
-    
-    if (length(run.steps) == n.lizards) {break}              ## exit repeat loop when number of run steps is 20?? AKA more than 20 trials were run??
+    die <- c(die, die.disp)
+
+    if (length(run.steps) == n.ind) {break}              ## exit repeat loop when number of run steps is 20?? AKA more than 20 trials were run??
   }
   
-  success <- length(run.steps[run.steps <= n.moves])         ## calculate the number of successful returns within 1000 movement steps
-  no.success <- c(no.success, success)                       ## create vector for number of successful returns
-  print(paste0('completed trail - ', length(no.success)))    ## track progress for each lizard at the 
-  
-  lizard.moves <- c(lizard.moves, run.steps)                 ## create vector of number of moves each lizard took to go  steps from last
-  if (length(no.success) >= n.trials) {break}                ## exit repeat loop after trails
-}
-Sys.time() - start_time       ## Calculate the length of time that code was run
 
-
-## Data Summaries:
-  ## Calculate the number of trials where animals successfully homed
-    table(no.success)         ## Top row is the number of lizards out of 20 that made it home, second row is the number of trials that had that observation (e.g., 0/20 lizards made it home in 9,000 trials)sleep_for_a_minute()
-  
   ## Write output data files: 
-    out.df <- data.frame(final.distance = final.dist, total.distance=total.dist, num.moves = lizard.moves, 
-                         successful.home = ifelse(lizard.moves > n.moves, yes=0, no=1))                           ## create an output data file for individual lizard movment data 
-    write.csv(out.df, paste0(disp.y, "m", home.radius, "mrad", n.trials, "distance_moved_20Klizards.csv"))        ## output total distance moved and final distance from home for each lizard
-    write.table(no.success, paste0(disp.y, "m", home.radius, "mrad", n.trials, "success_binary_20Klizards.txt"))  ## output table tracking number of lizards that successfully home in each trial
-     
-  ## Data Summaries: 
-    ddply(out.df, ~as.factor(successful.home), summarise, mean=mean(total.distance, na.rm=T), sd=sd(total.distance, na.rm=T), 
-          min=min(total.distance, na.rm=T), max=max(total.distance, na.rm=T))
-    
-    ddply(out.df, ~as.factor(successful.home), summarise, mean=mean(final.distance, na.rm=T), sd=sd(final.distance, na.rm=T), 
-          min=min(final.distance, na.rm=T), max=max(final.distance, na.rm=T))
-    
-
-## Histogram Code -- IGNORE FOR NOW
-  # tmp <- read.table(paste0(disp.y, "m", home.radius, "mrad", n.trials, "experiments.txt"))     ## read in table of successes???
-  # 
-  # ## plot histogram of the number of successess
-  #   par(mai = c(0.9, 1.0, 0.2, 0.2))
-  #   hist(tmp$x, xlim = c(0, 20), ylim = c(0, 50), cex.axis = 1.5, main = "", cex.lab = 1.75, font.lab = 2, xlab = "Number Returned")
-  #   lines(rep(16, 51), 0:50, lwd = 5, col = "red")
-  # 
-
-  ###Raster package has extract function so can look at slice
+  #   out.df <- data.frame(final.distance = final.dist, total.distance=total.dist, num.moves = lizard.moves, 
+  #                        successful.home = ifelse(lizard.moves > n.moves, yes=0, no=1))                           ## create an output data file for individual lizard movment data 
+  #   write.csv(out.df, paste0(disp.y, "m", home.radius, "mrad", n.trials, "distance_moved_20Klizards.csv"))        ## output total distance moved and final distance from home for each lizard
+  #   write.table(no.success, paste0(disp.y, "m", home.radius, "mrad", n.trials, "success_binary_20Klizards.txt"))  ## output table tracking number of lizards that successfully home in each trial
+  #    
+  # ## Data Summaries: 
+  #   ddply(out.df, ~as.factor(successful.home), summarise, mean=mean(total.distance, na.rm=T), sd=sd(total.distance, na.rm=T), 
+  #         min=min(total.distance, na.rm=T), max=max(total.distance, na.rm=T))
+  #   
+  #   ddply(out.df, ~as.factor(successful.home), summarise, mean=mean(final.distance, na.rm=T), sd=sd(final.distance, na.rm=T), 
+  #         min=min(final.distance, na.rm=T), max=max(final.distance, na.rm=T))
