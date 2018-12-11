@@ -1,29 +1,35 @@
-#setwd("C:/Users/semlitschlab/Box Sync/Mizzou/Research/Manuel_Lizards/")           ## set working directory to where files are located and where you would like data output to
+##################
+# Works well for one individual with fixed step length
+# 
+# To do:
+# Tweak so can iterate through a lot of animals
+# Integrate with landscape module
+# Add in sensing for deciding when to stop
+################################################
+
+
 library(actuar)
-#moves <- read.table("lizard_moves.txt", h = F)    ## data file holding the movement data for Anolis lizards
+
 run.steps <- NULL   
 angle <- 1:360        ## seq(from = 1, to = 360, by =8) 
-homex <- 0            ## x-coordinate for home location
-homey <- 0            ## y-coordinate for home location
 startx <- 0           ## x-coordiante of displacement location
-starty <- 40          ## y-coordinate of displacement location 
-no.success <- NULL    ## empty vector to track the number of successes 
+starty <- 0          ## y-coordinate of displacement location 
 
 ## Parameters to Change
 disp.x <- startx             ## distance lizard displaced in the x-dimension
 disp.y <- starty             ## distance lizard displaced in the y-dimension
-home.radius <- 100            ## radius in which salamander can detect pond (100 m)
-n.moves <- rllogis(1500              ## number of movements allowed per individual
-n.lizards <- 20              ## number of lizards to test per trial
-n.trials <- 10000            ## number of trials to run the lizard for
+#home.radius <- 100            ## radius in which salamander can detect pond (100 m)
+#n.dist.max <- rllogis(n = 1500, shape = 1.5, scale = 30)  ## number of movements allowed per individual
+n.ind <- 1              ## number of lizards to test per trial
+n.trials <- 1            ## number of trials to run the lizard for
 final.dist <- NULL           ## stores the final distance for each individual lizard
 total.dist <- NULL           ## stores the total distance traveled for each lizard
-lizard.moves <- NULL         ## stores the total number of moves for each lizard     
+ind.moves <- NULL         ## stores the total number of moves for each lizard     
 
 ## Simulation Code
 start_time <- Sys.time()         ## Start timer for running code 
 repeat{                          ## Loop over number of trials
-  success <- NULL                ## create empty vector for success
+  #success <- NULL                ## create empty vector for success
   run.steps <- NULL              ## create empty vector for storing the number of movment steps made during trial
   # plot.lizard <- sample(x = 1:n.lizards, 1)   ## select a random lizard to plot
   
@@ -33,32 +39,35 @@ repeat{                          ## Loop over number of trials
     x <- NULL                    ## create empty vector for storing x-coordinates
     y <- NULL                    ## create empty vector for storing y-coordinates 
     dist <- NULL                 ## create empty vector for storing distances from home
+    new.ang <- sample(angle, replace = TRUE, size = 1)     ## randomly select an initial angle
+    dist.max <- rllogis(n = 1, shape = 1.5, scale = 30)  ## number of movements allowed per individual
     ang <- NULL                  ## create empty vector for storing movement angles? 
-    dist.travel <- 0             ## create object for storing the individual lizard movement information
+    dist.traveled <- 0             ## create object for storing the individual lizard movement information
     fin.dist <- NULL             ## create object for storing the final distance per individual (fixes bug in code)
 
     repeat{              ## Loop over number of movment steps (run.steps) for each lizard 
-      new.ang <- sample(angle, size = 1)                      ## randomly select an angle
-      new.move <- sample(moves$V1, size = 1)                  ## randomly select a movement distance
+      new.ang <- rnorm(n = 1, mean = new.ang, sd = 10)     ## randomly select an angle
+      new.move <- 10                                         ## move 30 m in each step
       rad <- new.ang*(pi/180)                                 ## convert angle from degrees to radians
       new.x <- new.x + new.move*sin(rad)                      ## calculate new x-coordinate 
       new.y <- new.y + new.move*cos(rad)                      ## calculate new y-coordinate
-      dist.home <- sqrt((abs(new.x))^2 + (abs(new.y))^2)      ## calculate distance from new position to home
+      dist.traveled <- sqrt((abs(new.x))^2 + (abs(new.y))^2)      ## calculate distance from new position to home
       
       x <- c(x, new.x)                                        ## create vector of x-coordinates for each movement step 
       y <- c(y, new.y)                                        ## create vector of y-coordinates for each movement step
-      dist <- c(dist, dist.home)                              ## create vector of distances from home for each movement step
+      dist <- c(dist, dist.traveled)                              ## create vector of distances from home for each movement step
       ang <- c(ang, new.ang)                                  ## create vector of angles for each movement step
      
       #If reach home radius, move on to next individual
-      if (dist.home <= home.radius | length(dist) == n.moves+1) {break}     ## exit repeat loop if distance is less than 20 meters or if greater than 1000 movement steps
+      if (dist.traveled >= dist.max) {break}
+      #if (dist.home <= home.radius | length(dist) == n.moves+1) {break}     ## exit repeat loop if distance is less than 20 meters or if greater than 1000 movement steps
       
-      dist.travel <- dist.travel + new.move    ## calculate the total distance traveled for the lizard
-      fin.dist <- dist.home                    ## if lizard has not homed or timed out, update final distance          
+      dist.traveled <- dist.traveled + new.move    ## calculate the total distance traveled for the lizard
+      fin.dist <- dist.traveled                    ## if lizard has not homed or timed out, update final distance          
     }
     
-    dum.dist <- ifelse(length(dist) == n.moves+1, yes=fin.dist, no=dist.home)
-    final.dist <- c(final.dist, dum.dist)                    ## store final distance to home for each lizard
+    #dum.dist <- ifelse(length(dist) == n.moves+1, yes=fin.dist, no=dist.home)
+    final.dist <- c(final.dist)                    ## store final distance to home for each lizard
     total.dist <- c(total.dist, dist.travel)                 ## store total distance traveled for each lizard
     run.steps <- c(run.steps, length(dist))                  ## create vector of movement steps made to reach home
     
