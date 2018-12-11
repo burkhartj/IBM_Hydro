@@ -1,6 +1,7 @@
 ## ---------------------------------------------------------
 ## Test functions for IBM Hydroperiod modelling
 ## 
+## By: J. Burkhart and B. Ousterhout
 ## ---------------------------------------------------------
 
 ## Initialize Models:
