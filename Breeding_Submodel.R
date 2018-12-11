@@ -12,16 +12,16 @@
 ## Initialize Models:
 ## ------------------
   ## Input Parameters to automate changes:
-    n.inds <- 50
-    n.ponds <- 8
-    n.patch <- 144
-    n.gens <- 100
+    n.inds <- 50               ## number of individuals to create across all ponds
+    n.ponds <- 8               ## number of initial ponds to create
+    n.patch <- 144             ## total number of patches ---- TEMPORARY, DELETE WHEN LANDSCAPE UPDATE WORKS
+    n.gens <- 200              ## number of generations to iterate over 
     
-    K.mult <- 2.25
+    K.mult <- 2.25             ## Carrying capacity multiplier. Based off a Semlitsch paper 
     
-    min.SVL.F <- 48
-    min.SVL.M <- 45
-    SVL.0.mu <- 26.00
+    min.SVL.F <- 48            ## minimum SVL for sexual maturity - females ---- ARBITRARY RIGHT NOW 
+    min.SVL.M <- 45            ## minimum SVL for sexual maturity - males ---- ARBITRARY RIGHT NOW 
+    SVL.0.mu <- 26.00          ## SVL params based on Taylor and Scott equations, MU's are data driven, SD's ARE ARBITRARY (sizes are for AMOP, maybe use Winters thesis [skeletal chronology] for AMAN size classes?), 
     SVL.0.sd <- 1.5
     SVL.1.mu <- 39.61
     SVL.1.sd <- 0.5
@@ -32,18 +32,18 @@
     SVL.4p.mu <- 48.97
     SVL.4p.sd <- 0.01
 
-    min.age.F <- 2
-    min.age.M <- 1
-    max.age <- 12
+    min.age.F <- 2                   ## minimum age for reproduction - females
+    min.age.M <- 1                   ## minumum age for reproduction - males
+    max.age <- 12                    ## maximum age for all adults
     
-    philo.rate <- 0.80                ## rate of philopatry
-    disp.beta1 <- 0.45               ## shape1 for rbeta dispersal dist
-    disp.beta2 <- 1.00               ## shape2 for rbeta dispersal dist
-    mort.prob.mu <- 0.69
-    mort.prob.sd <- 0.10
+    philo.rate <- 0.90               ## rate of philopatry
+    disp.shape <- 1.5                ## shape param for rllogis dispersal dist draws
+    disp.scale <- 30                 ## scale param for rllogis dispersal dist draws
+    mort.prob.mu <- 0.69             ## probability of ADULT mortality - MU for rnorm draw
+    mort.prob.sd <- 0.10             ## probability of ADULT mortality - SD for rnorm draw
     
-    min.hydro <- 0
-    n.hydro.class <- 3
+    min.hydro <- 1                   ## minimum hydroperiod class; if < this threshold, no reproduction in pond
+    n.hydro.class <- 3               ## number of hydroperiod classes (used in random draws currently, will be used for deriving parameters later rather than hard coding like below)
     hydro.0.mu <- 42.8
     hydro.0.sd <- 5
     hydro.1.mu <- 76.5
@@ -58,9 +58,58 @@
     temp.terrestrial.K <- n.patch * 180            ## DELETE LATER. WILL BE IRRELEVANT ONCE THE SPATIAL STUFF IS INCORPORATED
   
   ## Create Data Frame of Patches (eventually pull pond coordinates from the landscape submodel)
+    # Make an empty landscape
+    m <- matrix(0, sqrt(n.patch), sqrt(n.patch))                #Set landscape size
+    r <- raster(m, xmn = 0, xmx = sqrt(n.patch) * 30, ymn = 0 , ymx = sqrt(n.patch) * 30)   #Set raster min and max y and x coords
     
+    # Add in pond patches. Patches are allowed to be contiguous. Can add in pond starting position
+    # and split background into multiple classes (eg. make ponds first, add in forest / fields).
+    pond.num <- n.ponds
+    pond.size.mean <- 1
+    pond.size.sd <- 0
+    pond.class <- 1
+    pond.r <- makeClass(r,                      #Raster name
+                        pond.num,               #Number of ponds
+                        rnorm(pond.num, pond.size.mean, pond.size.sd),      #Pond size
+                        val = pond.class)       #Pond class
     
-        
+    plot(pond.r, col = c("green", "blue"))
+    
+    #Add layer to raster with terrestrial carrying capacity
+    terrestrial.k <-180    #Assuming 180 salamanders per 30 x 30 m cell
+    
+    terrestrial.k.r <- r + 1
+    terrestrial.k.r <- terrestrial.k.r - pond.r
+    terrestrial.k.r <- terrestrial.k.r * terrestrial.k
+    
+  plot(pond.r, col=c("green", "blue"))  
+  plot(terrestrial.k.r, col=c("light blue", "dark green"))  
+
+  
+  ## Initialize Pond Data Frame:
+  ponds <- data.frame(Pond.ID = seq(1:n.ponds),
+                      Pond.X = numeric(n.ponds), 
+                      Pond.Y = numeric(n.ponds),
+                      Hydroperiod = sample(0:n.hydro.class, n.ponds, T), 
+                      Pond.Area = numeric(n.ponds), 
+                      Pond.K = numeric(n.ponds), 
+                      N.inds = numeric(n.ponds), 
+                      Mort.Pond = numeric(n.ponds)
+  )
+  
+  for(i in 1:dim(ponds)[1]){
+    ponds$Pond.Area[i] <- ifelse(ponds$Hydroperiod[i] == 0, yes=round(rnorm(1, hydro.0.mu, hydro.0.sd), 3), 
+                                 no=ifelse(ponds$Hydroperiod[i] == 1, yes=round(rnorm(1, hydro.1.mu, hydro.1.sd), 3),
+                                           no=ifelse(ponds$Hydroperiod[i] == 2, yes=round(rnorm(1, hydro.2.mu, hydro.2.sd), 3), 
+                                                     no=ifelse(ponds$Hydroperiod[i] == 3, yes=round(rnorm(1, hydro.3.mu, hydro.3.sd), 3), 
+                                                               no=NA))))
+  }
+  
+  ponds$Pond.K <- round(K.mult * ponds$Pond.Area)
+  
+  ponds$Pond.X <- as.data.frame(rasterToPoints(pond.r, function(x){x == 1}))$x
+  ponds$Pond.Y <- as.data.frame(rasterToPoints(pond.r, function(x){x == 1}))$y
+          
   ## Create Data Frame of Individuals:  inds-own [age, sex, svl, loci, my-land-home (Nat.Patch), my-natal-pond (Nat.Pond),  my-breed-pond (Breed.Pond), can-breed (Rep.Active), years-since-breed (IBI)]
   inds <- data.frame(Sex = sample(c("M", "F"), n.inds, replace=T), 
                      Age = sample(0:round(max.age / 2), n.inds, T), 
@@ -70,7 +119,8 @@
                      Bred = 0, 
                      Generation = 0, 
                      Nat.Pond = sample(1:n.ponds, n.inds, T), 
-                     Nat.Patch = sample(1:n.patch, n.inds, T), 
+                     Patch.X = numeric(n.inds), 
+                     Patch.Y = numeric(n.inds),
                      Disp.Prob = round(rbeta(n.inds, disp.beta1, disp.beta2), 3), 
                      Breed.Pond = numeric(n.inds),
                      Init.Angle = numeric(n.inds), 
@@ -83,6 +133,9 @@
                      )
   
      inds$Breed.Pond <- ifelse(inds$Disp.Prob > philo.rate, yes=sample(unique(inds$Nat.Pond), 1, T), no=inds$Nat.Pond)
+     
+     ponds$N.inds <- as.data.frame(table(inds$Nat.Pond))$Freq
+     
      
     ## Add Genetic Data 
     for(i in 1:dim(inds)[1]){
@@ -112,34 +165,26 @@
       
       ## Intialize Dispersal Data: 
       inds$Init.Angle[i] <- round(runif(1, 1, 360)) 
-      inds$Disp.Dist[i] <- rllogis(1, shape=1.5, scale=30)
-      
+      inds$Disp.Dist[i] <- rllogis(1, shape=disp.shape, scale=disp.scale)
+      inds$Patch.X[i] <- ponds[ponds$Pond.ID %in% inds$Nat.Pond[i], "Pond.X"] + inds$Disp.Dist[i] * sin((inds$Init.Angle[i])*(pi/180))
+      inds$Patch.Y[i] <- ponds[ponds$Pond.ID %in% inds$Nat.Pond[i], "Pond.Y"] + inds$Disp.Dist[i] * cos((inds$Init.Angle[i])*(pi/180))
+
+        # repeat{
+          ## extract patch K, patch coords
+          ## patch.inds <- dim(subset(inds, Patch.X == inds$Patch.X[i] & Patch.Y[i]))[1]
+          ## calculate # inds on patch
+          # if(patch.inds <= patch.K / 2) {break}
+            # inds$Init.Angle[i] <- round(runif(1, 1, 360)) 
+            # inds$Disp.Dist[i] <- rllogis(1, shape=disp.shape, scale=disp.scale)
+            # patch.K <- 
+            
+        # }
         ## Pick intial angle and dispersal distance. Check the patch K. 
         ## If less than K/2, assign individual here. If not, re-draw angle and distance.  
     }
    
   
-  ## Initialize Pond Data Frame:  ponds-own [hydroperiod, inds-in-pond (N.inds), pond-k, pond-area]   
-  ponds <- data.frame(Pond.ID = seq(1:n.ponds), 
-                      Pond.X = numeric(n.ponds), 
-                      Pond.Y = numeric(n.ponds),
-                      Hydroperiod = sample(0:n.hydro.class, n.ponds, T), 
-                      Pond.Area = numeric(n.ponds), 
-                      Pond.K = numeric(n.ponds), 
-                      N.inds = numeric(n.ponds), 
-                      Mort.Pond = numeric(n.ponds)
-                      )
-  
-    for(i in 1:dim(ponds)[1]){
-      ponds$Pond.Area[i] <- ifelse(ponds$Hydroperiod[i] == 0, yes=round(rnorm(1, hydro.0.mu, hydro.0.sd), 3), 
-                                no=ifelse(ponds$Hydroperiod[i] == 1, yes=round(rnorm(1, hydro.1.mu, hydro.1.sd), 3),
-                                          no=ifelse(ponds$Hydroperiod[i] == 2, yes=round(rnorm(1, hydro.2.mu, hydro.2.sd), 3), 
-                                                    no=ifelse(ponds$Hydroperiod[i] == 3, yes=round(rnorm(1, hydro.3.mu, hydro.3.sd), 3), 
-                                                              no=NA))))
-    }
-  
-    ponds$Pond.K <- round(K.mult * ponds$Pond.Area)
-    ponds$N.inds <- as.data.frame(table(inds$Nat.Pond))$Freq
+
 ## ------------------  
 
 ## Breeding Migration:
@@ -190,23 +235,23 @@ for(g in 1:n.gens){
           ## Demographics
           num.off$Sex <- sample(c("F", "M"), n.off, T)
           num.off$Age <- rep(0, times=n.off)
-          num.off$SVL <- round(rnorm(n.off, SVL.0.mu, SVL.0.sd), 2)      ## random normal draw for now. will update to density dependent
-          num.off$Rep.Active <- rep(F, times=n.off)                      ## Set reproductively active to "FALSE"
-          num.off$IBI <- rep(0, times=n.off)                             ## Set interbreeding interval to 0
-          num.off$Nat.Pond <- rep(pond.list[p], times=n.off)             ## Set natal pond to mother's breeding pond
-          num.off$Nat.Patch <- numeric(n.off)                            ## add empty vector for patches. will update in the dispersal function
-          num.off$Disp.Prob <- round(rbeta(n.off, disp.beta1, disp.beta2), 3)     ## create a vector of dispersal probability
+          num.off$SVL <- round(rnorm(n.off, SVL.0.mu, SVL.0.sd), 2)            ## random normal draw for now. will update to density dependent
+          num.off$Rep.Active <- rep(F, times=n.off)                            ## Set reproductively active to "FALSE"
+          num.off$IBI <- rep(0, times=n.off)                                   ## Set interbreeding interval to 0
+          num.off$Nat.Pond <- rep(pond.list[p], times=n.off)                   ## Set natal pond to mother's breeding pond
+          num.off$Patch.X <- numeric(n.inds)                                   ## patch x-coordinate 
+          num.off$Patch.Y <- numeric(n.inds)                                   ## patch y-coordinate
+          num.off$Disp.Prob <- round(rbeta(n.off, disp.beta1, disp.beta2), 3)  ## create a vector of dispersal probability
           num.off$Breed.Pond <- ifelse(num.off$Disp.Prob > philo.rate, yes=sample(unique(ponds$Pond.ID), 1, T), no=num.off$Nat.Pond)
-          num.off$Init.Angle <- round(runif(n.off, 1, 360))              ## choose initial movement angle
-          num.off$Disp.Dist <- rllogis(1, shape=1.5, scale=30)           ## Peterman et al. 2015 dispersal distance for A. annulatum? 1,693m (95% CI 1,645-1,740 m for AMAN)
-          num.off$Mort.Prob <- numeric(n.off)                            ## empty vector for later imposing mortality 
-          num.off$Bred <- rep(0, times=n.off)                            ## vector of zeros for breeding
-          num.off$Generation <- rep(g, times=n.off)                      ## vector to store generation of origin 
+          num.off$Init.Angle <- round(runif(n.off, 1, 360))                    ## choose initial movement angle
+          num.off$Disp.Dist <- rllogis(1, shape=disp.shape, scale=disp.scale)  ## Peterman et al. 2015 dispersal distance for A. annulatum? 1,693m (95% CI 1,645-1,740 m for AMAN)
+          num.off$Mort.Prob <- numeric(n.off)                                  ## empty vector for later imposing mortality 
+          num.off$Bred <- rep(0, times=n.off)                                  ## vector of zeros for breeding
+          num.off$Generation <- rep(g, times=n.off)                            ## vector to store generation of origin 
           
-          ## Genetics
-            ## MIGHT NEED TO FIX THE MALE BREEDING ASPECT OF THINGS. CURRENTLY FUNCTIONS BUT MAY NOT BE FULLY ACCURATE BIOLOGICALLY
-            ## Might need to throw into yet another for loop... 
-          
+          ## Genetics --
+            ## System mimics polyandry. Randomly selects one of two females alleles, equal to number of offspring. 
+            ## Randomly selects on of males alleles at each locus, each offspring has single paternity.
             num.off$LocA <- paste0(unlist(strsplit(rep.feme$LocA[f], ":"))[sample(1:2, n.off, T)], ":",  
                                    unlist(strsplit(male.df$LocA, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
             num.off$LocB <- paste0(unlist(strsplit(rep.feme$LocB[f], ":"))[sample(1:2, n.off, T)], ":",  
@@ -225,7 +270,7 @@ for(g in 1:n.gens){
         
       }  ## end FEMALES iterations
       
-      ## Impose LARVAL carrying capacity catch 
+      ## Impose LARVAL carrying capacity catch.  
       if(ponds[ponds$Pond.ID %in% pond.list[p], "Pond.K"] < dim(off.pond)[1]){
          off.pond <- off.pond[-sample(x = 1:dim(off.pond)[1], replace=F,
                                       size = (dim(off.pond)[1]) - ponds[ponds$Pond.ID %in% pond.list[p], "Pond.K"]), ]
@@ -247,7 +292,7 @@ for(g in 1:n.gens){
 ## --------------------
   ## Update demographic information 
   inds$Age <- inds$Age + 1
-  inds$SVL <- ifelse(inds$Age == 1, yes=0.785 * inds$SVL + 19.9, 
+  inds$SVL <- ifelse(inds$Age == 1, yes=0.785 * inds$SVL + 19.9,  
                      no=ifelse(inds$Age == 2, yes=0.937 * inds$SVL + 7.36, 
                                no=ifelse(inds$Age == 3, yes=inds$SVL + 2.5, 
                                          no=ifelse(inds$Age == 4, yes=inds$SVL + 1.5, 
@@ -307,19 +352,17 @@ print(round(Sys.time() - start.time, 2))         ## end timer
     hist(inds0$Age, col=rgb(0,0,1,0.5), xlim=c(0,max.age+1),
          main="Age Dist. - Final", xlab="Age (years)")
     plot(inds0$Age, inds0$SVL, col=as.factor(inds0$Sex), pch=17, 
-         main="Age x SVL - Inital", xlab="Age (years)", ylab="SVL (mm)")
+         main="Age x SVL x Sex - Inital", xlab="Age (years)", ylab="SVL (mm)")
     plot(inds0$Age, inds0$SVL, col=as.factor(inds0$Rep.Active), pch=17,
-         main="Sexual Maturity - Initial", 
-         xlab="Age (years)", ylab="Rep. Active (yes/no) (mm)")
+         main="Age x SVL x Rep. Active - Initial", 
+         xlab="Age (years)", ylab="SVL (mm)")
     
     hist(inds$Age, col=rgb(1,0,0,0.5), xlim=c(0,max.age+1), 
          main="Age Dist. - Final", xlab="Age (years)")
     plot(inds$Age, inds$SVL, col=as.factor(inds$Sex), pch=16, 
-         main="Age x SVL - Final", xlab="Age (years)", ylab="SVL (mm)")
+         main="Age x SVL x Sex - Final", xlab="Age (years)", ylab="SVL (mm)")
     plot(inds$Age, inds$SVL, col=as.factor(inds$Rep.Active), pch=16,
-         main="Sexual Maturity - Final", 
-         xlab="Age (years)", ylab="Rep. Active (yes/no)")
+         main="Age x SVL x Rep. Active - Final", 
+         xlab="Age (years)", ylab="SVL (mm)")
     
-    
-    Sys.time("min")
 ## ----------------------
