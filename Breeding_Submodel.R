@@ -13,7 +13,7 @@
 ## ------------------
   ## Input Parameters to automate changes:
     n.inds <- 50               ## number of individuals to create across all ponds
-    n.ponds <- 8               ## number of initial ponds to create
+    n.ponds <- 4               ## number of initial ponds to create
     n.patch <- 144             ## total number of patches ---- TEMPORARY, DELETE WHEN LANDSCAPE UPDATE WORKS
     n.gens <- 200              ## number of generations to iterate over 
     
@@ -36,6 +36,7 @@
     min.age.M <- 1                   ## minumum age for reproduction - males
     max.age <- 12                    ## maximum age for all adults
     
+    max.disp.dist <- 5000            ## maximum possible dispersal distance (used for landscape border buffer)
     philo.rate <- 0.90               ## rate of philopatry
     disp.shape <- 1.5                ## shape param for rllogis dispersal dist draws
     disp.scale <- 30                 ## scale param for rllogis dispersal dist draws
@@ -62,6 +63,16 @@
     m <- matrix(0, sqrt(n.patch), sqrt(n.patch))                #Set landscape size
     r <- raster(m, xmn = 0, xmx = sqrt(n.patch) * 30, ymn = 0 , ymx = sqrt(n.patch) * 30)   #Set raster min and max y and x coords
     
+    ## Make border landscape
+    bm <- matrix(0, (dim(m)[1]+ceiling(max.disp.dist/30)+1), (dim(m)[2]+ceiling(max.disp.dist/30)+1))
+    br <- raster(bm, 
+                 xmn = extent(pond.r)@xmin - (ceiling(max.disp.dist/2) + 30),
+                 xmx = extent(pond.r)@xmax + (ceiling(max.disp.dist/2) + 30), 
+                 ymn = extent(pond.r)@ymin - (ceiling(max.disp.dist/2) + 30), 
+                 ymx = extent(pond.r)@ymax + (ceiling(max.disp.dist/2) + 30))   #Set raster min and max y and x coords
+    res(br) <- 30
+    
+    p2 <- pond.r + br
     # Add in pond patches. Patches are allowed to be contiguous. Can add in pond starting position
     # and split background into multiple classes (eg. make ponds first, add in forest / fields).
     pond.num <- n.ponds
@@ -73,6 +84,7 @@
                         rnorm(pond.num, pond.size.mean, pond.size.sd),      #Pond size
                         val = pond.class)       #Pond class
     
+    pond.r <- pond.r + br
     plot(pond.r, col = c("green", "blue"))
     
     #Add layer to raster with terrestrial carrying capacity
