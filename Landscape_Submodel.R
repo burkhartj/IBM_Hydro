@@ -1,5 +1,6 @@
 ####To do: 
 #1) Make pond sizes FLW relevant
+#2) Should 
 
 #########################
 # Build raster landscape
@@ -40,8 +41,10 @@ terrestrial.k.r <- terrestrial.k.r * terrestrial.k
 terrestrial.resident.r <- r
 
 ## Create and empty distance layer
-dist.r
+dist.r <- r
 
 ls <- stack(pond.r, terrestrial.k.r, terrestrial.resident.r, dist.r)  #Form stack of raster layers
+
+names(ls) <- c('Pond.Loc', 'Terrestrial.k', 'Terrestrial.Resident', 'Dist.r')
 
 

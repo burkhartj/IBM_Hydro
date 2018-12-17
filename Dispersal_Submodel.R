@@ -1,24 +1,66 @@
 ##################
-# Works well for one individual with fixed step length
-# 
 # To do:
-# Integrate with landscape module
-# Add in sensing for deciding when to stop
+# Need to add in +1 to resident layer wherever settle (line 103-106)
+# Add in sensing neighborhood of cells
 ################################################
 
 
 library(actuar)
 
+#####################
+# Build toy landscape
+######################
+
+library(landscapeR)
+library(raster)
+library(rgdal)
+library(actuar)
+
+# Make an empty landscape
+m <- matrix(0, 100, 100)                                  #Set landscape size
+r <- raster(m, xmn = 0, xmx = 3000, ymn = 0 , ymx = 3000)   #Set raster min and max y and x coords
+
+# Add in pond patches. Patches are allowed to be contiguous. Can add in pond starting position
+# and split background into multiple classes (eg. make ponds first, add in forest / fields).
+pond.num <- 1
+pond.size.mean <- 16
+pond.size.sd <- 5
+pond.class <- 1
+pond.r <- makeClass(r,                      #Raster name
+                    pond.num,               #Number of ponds
+                    rnorm(pond.num, pond.size.mean, pond.size.sd),      #Pond size
+                    val = pond.class)       #Pond class
+
+terrestrial.k <-1    #Assuming 180 salamanders per 30 x 30 m cell
+
+terrestrial.k.r <- r + 1
+terrestrial.k.r <- terrestrial.k.r - pond.r
+terrestrial.k.r <- terrestrial.k.r * terrestrial.k
+
+
+#Add empty layer to assign residents to 
+terrestrial.resident.r <- r
+
+## Create and empty distance layer
+dist.r <- r
+
+ls <- stack(pond.r, terrestrial.k.r, terrestrial.resident.r, dist.r)  #Form stack of raster layers
+
+names(ls) <- c('Pond.Loc', 'Terrestrial.k', 'Terrestrial.Resident', 'Dist.r')
+
+######################
+# Run dispersal model
+######################
 run.steps <- NULL   
 angle <- 1:360        ## seq(from = 1, to = 360, by =8) 
-startx <- 0           ## x-coordiante of displacement location
-starty <- 0          ## y-coordinate of displacement location 
+startx <- mean(rasterToPoints(ls[['Pond.Loc']], function(v){v == 1})[,1])          ## x-coordiante of displacement location
+starty <- mean(rasterToPoints(ls[['Pond.Loc']], function(v){v == 1})[,2])         ## y-coordinate of displacement location 
 
 ## Parameters to Change
 disp.x <- startx             ## distance lizard displaced in the x-dimension
 disp.y <- starty             ## distance lizard displaced in the y-dimension
 #sensing.dist <- 30          ## radius in which salamander can detect ponds / neighbors (30 m)
-n.ind <- 10              ## number of lizards to test per trial
+n.ind <- 20              ## number of lizards to test per trial
 n.trials <- 1            ## number of trials to run the lizard for
 
 #Parameters to save from model runs
@@ -26,19 +68,19 @@ max.dispersal.dist <- NULL         ## Stores the max distance can disperse for e
 total.dist <- NULL           ## stores the total distance traveled for each lizard
 ind.moves <- NULL         ## stores the total number of moves for each lizard     
 die <- 0
+success <- 0
 
 ## Simulation Code
-start_time <- Sys.time()         ## Start timer for running code 
   run.steps <- NULL              ## create empty vector for storing the number of movment steps made during trial
-  plot.lizard <- sample(x = 1:n.ind, 1)   ## select a random lizard to plot
   
   repeat{                ## Loop over number of lizards for each trial
-    new.x <- 0                   ## create starting x-coordinate of displacement?
+    new.x <- disp.x                   ## create starting x-coordinate of displacement?
     new.y <- disp.y                  ## create starting y-coordinate of displacement?
     x <- NULL                    ## create empty vector for storing x-coordinates
     y <- NULL                    ## create empty vector for storing y-coordinates 
     dist <- NULL                 ## create empty vector for storing distances from home
     die.disp <- 0
+    success.disp <- 0
     new.ang <- sample(angle, replace = TRUE, size = 1)     ## randomly select an initial angle
     dist.max <- rllogis(n = 1, shape = 1.5, scale = 30)  ## number of movements allowed per individual
     ang <- NULL                  ## create empty vector for storing movement angles? 
@@ -57,7 +99,13 @@ start_time <- Sys.time()         ## Start timer for running code
       dist <- c(dist, dist.traveled)                              ## create vector of distances from home for each movement step
       ang <- c(ang, new.ang)                                  ## create vector of angles for each movement step
      
-      #If find available home, move on to next individual
+      #If find available home (Terrestrial.Resident < Terrestrial.k), stop and move on to next individual
+      if (extract( ls[['Terrestrial.Resident']], cbind(new.x,new.y)) < extract( ls[['Terrestrial.k']], cbind(new.x,new.y))) {
+        success.disp <- success.disp + 1
+        ls[['Terrestrial.Resident']] <- ls[['Terrestrial.Resident']]  + 1
+        break}
+      
+      #If move max distance, die and move on to next individual
       if (dist.traveled >= dist.max) {
         die.disp <- die.disp + 1
         break}
