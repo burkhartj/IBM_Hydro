@@ -60,7 +60,7 @@ starty <- mean(rasterToPoints(ls[['Pond.Loc']], function(v){v == 1})[,2])       
 disp.x <- startx             ## distance lizard displaced in the x-dimension
 disp.y <- starty             ## distance lizard displaced in the y-dimension
 #sensing.dist <- 30          ## radius in which salamander can detect ponds / neighbors (30 m)
-n.ind <- 20              ## number of lizards to test per trial
+n.ind <- 1              ## number of lizards to test per trial
 n.trials <- 1            ## number of trials to run the lizard for
 
 #Parameters to save from model runs
@@ -102,8 +102,10 @@ success <- 0
       #If find available home (Terrestrial.Resident < Terrestrial.k), stop and move on to next individual
       if (extract( ls[['Terrestrial.Resident']], cbind(new.x,new.y)) < extract( ls[['Terrestrial.k']], cbind(new.x,new.y))) {
         success.disp <- success.disp + 1
-        ls[['Terrestrial.Resident']] <- ls[['Terrestrial.Resident']]  + 1
-        break}
+        ls[['Terrestrial.Resident']] <- setValues(x = ls[['Terrestrial.Resident']],
+                                                  values = function(x) x+1,
+                                                  index = cbind(new.x, new.y))
+        }
       
       #If move max distance, die and move on to next individual
       if (dist.traveled >= dist.max) {
