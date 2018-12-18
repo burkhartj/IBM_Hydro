@@ -18,7 +18,7 @@ library(actuar)
 
 # Make an empty landscape
 m <- matrix(0, 100, 100)                                  #Set landscape size
-r <- raster(m, xmn = 0, xmx = 3000, ymn = 0 , ymx = 3000)   #Set raster min and max y and x coords
+r <- raster(m, xmn = 0, xmx = 1000, ymn = 0 , ymx = 1000)   #Set raster min and max y and x coords
 
 # Add in pond patches. Patches are allowed to be contiguous. Can add in pond starting position
 # and split background into multiple classes (eg. make ponds first, add in forest / fields).
@@ -46,29 +46,27 @@ dist.r <- r
 
 ls <- stack(pond.r, terrestrial.k.r, terrestrial.resident.r, dist.r)  #Form stack of raster layers
 
-names(ls) <- c('Pond.Loc', 'Terrestrial.k', 'Terrestrial.Resident', 'Dist.r')
-
 ######################
 # Run dispersal model
 ######################
 run.steps <- NULL   
 angle <- 1:360        ## seq(from = 1, to = 360, by =8) 
-startx <- mean(rasterToPoints(ls[['Pond.Loc']], function(v){v == 1})[,1])          ## x-coordiante of displacement location
-starty <- mean(rasterToPoints(ls[['Pond.Loc']], function(v){v == 1})[,2])         ## y-coordinate of displacement location 
+startx <- max(rasterToPoints(ls[[1]], function(v){v == 1})[,1])          ## x-coordiante of displacement location
+starty <- max(rasterToPoints(ls[[1]], function(v){v == 1})[,2])         ## y-coordinate of displacement location 
 
 ## Parameters to Change
 disp.x <- startx             ## distance lizard displaced in the x-dimension
 disp.y <- starty             ## distance lizard displaced in the y-dimension
 #sensing.dist <- 30          ## radius in which salamander can detect ponds / neighbors (30 m)
-n.ind <- 1              ## number of lizards to test per trial
+n.ind <- 100              ## number of lizards to test per trial
 n.trials <- 1            ## number of trials to run the lizard for
 
 #Parameters to save from model runs
 max.dispersal.dist <- NULL         ## Stores the max distance can disperse for each individual
 total.dist <- NULL           ## stores the total distance traveled for each lizard
 ind.moves <- NULL         ## stores the total number of moves for each lizard     
-die <- 0
-success <- 0
+die <- NULL
+success <- NULL
 
 ## Simulation Code
   run.steps <- NULL              ## create empty vector for storing the number of movment steps made during trial
@@ -100,12 +98,14 @@ success <- 0
       ang <- c(ang, new.ang)                                  ## create vector of angles for each movement step
      
       #If find available home (Terrestrial.Resident < Terrestrial.k), stop and move on to next individual
-      if (extract( ls[['Terrestrial.Resident']], cbind(new.x,new.y)) < extract( ls[['Terrestrial.k']], cbind(new.x,new.y))) {
+      if (extract( ls[[1]], cbind(new.x,new.y)) == 0 & 
+          extract( ls[[3]], cbind(new.x,new.y)) < extract( ls[[2]], cbind(new.x,new.y))) {
         success.disp <- success.disp + 1
-        ls[['Terrestrial.Resident']] <- setValues(x = ls[['Terrestrial.Resident']],
-                                                  values = function(x) x+1,
-                                                  index = cbind(new.x, new.y))
-        }
+        disp.cell <- cellFromXY(ls, cbind(new.x,new.y))
+        terrestrial.resident.r <- raster(ls, layer = 3)
+        terrestrial.resident.r[disp.cell] <- terrestrial.resident.r[disp.cell]+1
+        ls <- stack(pond.r, terrestrial.k.r, terrestrial.resident.r, dist.r)
+        break}
       
       #If move max distance, die and move on to next individual
       if (dist.traveled >= dist.max) {
@@ -120,7 +120,8 @@ success <- 0
     max.dispersal.dist   <- c(max.dispersal.dist, dist.max)
     run.steps <- c(run.steps, length(dist))                  ## create vector of movement steps made to reach home
     die <- c(die, die.disp)
-
+    success <- c(success, success.disp)
+    
     if (length(run.steps) == n.ind) {break}              ## exit repeat loop when number of run steps is 20?? AKA more than 20 trials were run??
   }
   
