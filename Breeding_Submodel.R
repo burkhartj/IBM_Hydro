@@ -12,12 +12,13 @@
 ## Initialize Models:
 ## ------------------
   ## Input Parameters to automate changes:
-    n.inds <- 50               ## number of individuals to create across all ponds
-    n.ponds <- 4               ## number of initial ponds to create
+    n.inds <- 500               ## number of individuals to create across all ponds
+    n.ponds <- 5               ## number of initial ponds to create
     n.patch <- 144             ## total number of patches ---- TEMPORARY, DELETE WHEN LANDSCAPE UPDATE WORKS
     n.gens <- 200              ## number of generations to iterate over 
     
-    K.mult <- 2.25             ## Carrying capacity multiplier. Based off a Semlitsch paper 
+    pond.K.mult <- 2.25             ## Carrying capacity multiplier. Based off a Semlitsch paper 
+    patch.K.mult <- 180             ## Carrying capacity multiplier for each 30x30 m grid cell
     
     min.SVL.F <- 48            ## minimum SVL for sexual maturity - females ---- ARBITRARY RIGHT NOW 
     min.SVL.M <- 45            ## minimum SVL for sexual maturity - males ---- ARBITRARY RIGHT NOW 
@@ -56,46 +57,48 @@
     # hydro.4.mu <- 
     # hydro.4.sd <-   
     
-    temp.terrestrial.K <- n.patch * 180            ## DELETE LATER. WILL BE IRRELEVANT ONCE THE SPATIAL STUFF IS INCORPORATED
-  
+    temp.terrestrial.K <- n.patch * patch.K.mult           ## DELETE LATER. WILL BE IRRELEVANT ONCE THE SPATIAL STUFF IS INCORPORATED
+    
+    
   ## Create Data Frame of Patches (eventually pull pond coordinates from the landscape submodel)
-    # Make an empty landscape
-    m <- matrix(0, sqrt(n.patch), sqrt(n.patch))                #Set landscape size
-    r <- raster(m, xmn = 0, xmx = sqrt(n.patch) * 30, ymn = 0 , ymx = sqrt(n.patch) * 30)   #Set raster min and max y and x coords
-    
-    ## Make border landscape
-    bm <- matrix(0, (dim(m)[1]+ceiling(max.disp.dist/30)+1), (dim(m)[2]+ceiling(max.disp.dist/30)+1))
-    br <- raster(bm, 
-                 xmn = extent(pond.r)@xmin - (ceiling(max.disp.dist/2) + 30),
-                 xmx = extent(pond.r)@xmax + (ceiling(max.disp.dist/2) + 30), 
-                 ymn = extent(pond.r)@ymin - (ceiling(max.disp.dist/2) + 30), 
-                 ymx = extent(pond.r)@ymax + (ceiling(max.disp.dist/2) + 30))   #Set raster min and max y and x coords
-    res(br) <- 30
-    
-    p2 <- pond.r + br
-    # Add in pond patches. Patches are allowed to be contiguous. Can add in pond starting position
-    # and split background into multiple classes (eg. make ponds first, add in forest / fields).
-    pond.num <- n.ponds
-    pond.size.mean <- 1
-    pond.size.sd <- 0
-    pond.class <- 1
-    pond.r <- makeClass(r,                      #Raster name
-                        pond.num,               #Number of ponds
-                        rnorm(pond.num, pond.size.mean, pond.size.sd),      #Pond size
-                        val = pond.class)       #Pond class
-    
-    pond.r <- pond.r + br
-    plot(pond.r, col = c("green", "blue"))
-    
-    #Add layer to raster with terrestrial carrying capacity
-    terrestrial.k <-180    #Assuming 180 salamanders per 30 x 30 m cell
-    
-    terrestrial.k.r <- r + 1
-    terrestrial.k.r <- terrestrial.k.r - pond.r
-    terrestrial.k.r <- terrestrial.k.r * terrestrial.k
-    
-  plot(pond.r, col=c("green", "blue"))  
-  plot(terrestrial.k.r, col=c("light blue", "dark green"))  
+    # # Make an empty landscape
+    # m <- matrix(0, sqrt(n.patch), sqrt(n.patch))                #Set landscape size
+    # r <- raster(m, xmn = 0, xmx = sqrt(n.patch) * 30, ymn = 0 , ymx = sqrt(n.patch) * 30)   #Set raster min and max y and x coords
+    # 
+   
+  #   # Add in pond patches. Patches are allowed to be contiguous. Can add in pond starting position
+  #   # and split background into multiple classes (eg. make ponds first, add in forest / fields).
+  #   pond.num <- n.ponds
+  #   pond.size.mean <- 1
+  #   pond.size.sd <- 0
+  #   pond.class <- 1
+  #   pond.r <- makeClass(r,                      #Raster name
+  #                       pond.num,               #Number of ponds
+  #                       rnorm(pond.num, pond.size.mean, pond.size.sd),      #Pond size
+  #                       val = pond.class)       #Pond class
+  #   
+  #   ## Make border landscape
+  #   bm <- matrix(-9999, (dim(m)[1]+ceiling(max.disp.dist/30)+1), (dim(m)[2]+ceiling(max.disp.dist/30)+1))
+  #   br <- raster(bm, 
+  #                xmn = extent(pond.r)@xmin - (ceiling(max.disp.dist/2) + 30),
+  #                xmx = extent(pond.r)@xmax + (ceiling(max.disp.dist/2) + 30), 
+  #                ymn = extent(pond.r)@ymin - (ceiling(max.disp.dist/2) + 30), 
+  #                ymx = extent(pond.r)@ymax + (ceiling(max.disp.dist/2) + 30))   #Set raster min and max y and x coords
+  #   # res(br) <- 30
+  #   
+  #   pond.r <- mosaic(br, pond.r, fun=sum)
+  #   plot(pond.r, col = c("green", "blue"), legend=F)
+  #   
+  #   #Add layer to raster with terrestrial carrying capacity
+  #   terrestrial.k <-180    #Assuming 180 salamanders per 30 x 30 m cell
+  #   
+  #   terrestrial.k.r <- br 
+  #   terrestrial.k.r[,] <- 1
+  #   terrestrial.k.r <- terrestrial.k.r - pond.r
+  #   terrestrial.k.r <- terrestrial.k.r * terrestrial.k
+  #   
+  # plot(pond.r, col=c("green", "blue"))  
+  # plot(terrestrial.k.r, col=c("light blue", "dark green"))  
 
   
   ## Initialize Pond Data Frame:
@@ -107,7 +110,7 @@
                       Pond.K = numeric(n.ponds), 
                       N.inds = numeric(n.ponds), 
                       Mort.Pond = numeric(n.ponds)
-  )
+                      )
   
   for(i in 1:dim(ponds)[1]){
     ponds$Pond.Area[i] <- ifelse(ponds$Hydroperiod[i] == 0, yes=round(rnorm(1, hydro.0.mu, hydro.0.sd), 3), 
@@ -133,7 +136,7 @@
                      Nat.Pond = sample(1:n.ponds, n.inds, T), 
                      Patch.X = numeric(n.inds), 
                      Patch.Y = numeric(n.inds),
-                     Disp.Prob = round(rbeta(n.inds, disp.beta1, disp.beta2), 3), 
+                     Disp.Prob = round(rbeta(n.inds, disp.shape, disp.scale), 3), 
                      Breed.Pond = numeric(n.inds),
                      Init.Angle = numeric(n.inds), 
                      Disp.Dist = numeric(n.inds), 
@@ -182,19 +185,31 @@
       inds$Patch.Y[i] <- ponds[ponds$Pond.ID %in% inds$Nat.Pond[i], "Pond.Y"] + inds$Disp.Dist[i] * cos((inds$Init.Angle[i])*(pi/180))
 
       
-        # repeat{
-          ## extract patch K, patch coords
-          ## patch.inds <- dim(subset(inds, Patch.X == inds$Patch.X[i] & Patch.Y[i]))[1]
-          ## calculate # inds on patch
-          # if(patch.inds <= patch.K / 2) {break}
-            # inds$Init.Angle[i] <- round(runif(1, 1, 360)) 
-            # inds$Disp.Dist[i] <- rllogis(1, shape=disp.shape, scale=disp.scale)
-            # patch.K <- 
+        repeat{
+          print(paste0("Check Terr K for ind #", i))
+          Patch.K <- extract(ls[[2]], cbind(inds$Patch.X[i], inds$Patch.Y[i]))    ## extract patch K
+          
+          patch.inds <- dim(subset(inds, Patch.X == inds$Patch.X[i] & Patch.Y[i]))[1]   ## calculate # inds on patch
+          
+          if(patch.inds <= floor(Patch.K / 2)) {
+            print("Patch not full, next ind")
+            break}  
             
-        # }
-        ## Pick intial angle and dispersal distance. Check the patch K. 
-        ## If less than K/2, assign individual here. If not, re-draw angle and distance.  
-    }
+            else {
+              print(paste0("Old Angle = ", round(inds$Init.Angle[i], 3), 
+                           " ----- Old Disp Dist = ", round(inds$Disp.Dist[i], 3), 
+                           " ----- Old XY-Coor = (", floor(inds$Patch.X[i]), ", ",
+                           floor(inds$Patch.Y[i]), ")"))
+              
+              inds$Init.Angle[i] <- round(runif(1, 1, 360)) 
+              inds$Disp.Dist[i] <- rllogis(1, shape=disp.shape, scale=disp.scale)
+              inds$Patch.X[i] <- ponds[ponds$Pond.ID %in% inds$Nat.Pond[i], "Pond.X"] + 
+                                    inds$Disp.Dist[i] * sin((inds$Init.Angle[i])*(pi/180))
+              inds$Patch.Y[i] <- ponds[ponds$Pond.ID %in% inds$Nat.Pond[i], "Pond.Y"] + 
+                                    inds$Disp.Dist[i] * cos((inds$Init.Angle[i])*(pi/180))
+            }  ## end else statement
+        }  ## end repeat loop
+    }  ## end for loop
    
   
 
