@@ -12,7 +12,7 @@
 ## Initialize Models:
 ## ------------------
   ## Input Parameters to automate changes:
-    n.inds <- 500               ## number of individuals to create across all ponds
+    n.inds <- 100               ## number of individuals to create across all ponds
     n.ponds <- 5               ## number of initial ponds to create
     n.patch <- 144             ## total number of patches ---- TEMPORARY, DELETE WHEN LANDSCAPE UPDATE WORKS
     n.gens <- 200              ## number of generations to iterate over 
@@ -41,6 +41,8 @@
     philo.rate <- 0.90               ## rate of philopatry
     disp.shape <- 1.5                ## shape param for rllogis dispersal dist draws
     disp.scale <- 30                 ## scale param for rllogis dispersal dist draws
+    disp.beta1 <- 0.45               ## shape1 for rbeta dispersal dist
+    disp.beta2 <- 1.00               ## shape2 for rbeta dispersal dist
     mort.prob.mu <- 0.69             ## probability of ADULT mortality - MU for rnorm draw
     mort.prob.sd <- 0.10             ## probability of ADULT mortality - SD for rnorm draw
     
@@ -60,47 +62,6 @@
     temp.terrestrial.K <- n.patch * patch.K.mult           ## DELETE LATER. WILL BE IRRELEVANT ONCE THE SPATIAL STUFF IS INCORPORATED
     
     
-  ## Create Data Frame of Patches (eventually pull pond coordinates from the landscape submodel)
-    # # Make an empty landscape
-    # m <- matrix(0, sqrt(n.patch), sqrt(n.patch))                #Set landscape size
-    # r <- raster(m, xmn = 0, xmx = sqrt(n.patch) * 30, ymn = 0 , ymx = sqrt(n.patch) * 30)   #Set raster min and max y and x coords
-    # 
-   
-  #   # Add in pond patches. Patches are allowed to be contiguous. Can add in pond starting position
-  #   # and split background into multiple classes (eg. make ponds first, add in forest / fields).
-  #   pond.num <- n.ponds
-  #   pond.size.mean <- 1
-  #   pond.size.sd <- 0
-  #   pond.class <- 1
-  #   pond.r <- makeClass(r,                      #Raster name
-  #                       pond.num,               #Number of ponds
-  #                       rnorm(pond.num, pond.size.mean, pond.size.sd),      #Pond size
-  #                       val = pond.class)       #Pond class
-  #   
-  #   ## Make border landscape
-  #   bm <- matrix(-9999, (dim(m)[1]+ceiling(max.disp.dist/30)+1), (dim(m)[2]+ceiling(max.disp.dist/30)+1))
-  #   br <- raster(bm, 
-  #                xmn = extent(pond.r)@xmin - (ceiling(max.disp.dist/2) + 30),
-  #                xmx = extent(pond.r)@xmax + (ceiling(max.disp.dist/2) + 30), 
-  #                ymn = extent(pond.r)@ymin - (ceiling(max.disp.dist/2) + 30), 
-  #                ymx = extent(pond.r)@ymax + (ceiling(max.disp.dist/2) + 30))   #Set raster min and max y and x coords
-  #   # res(br) <- 30
-  #   
-  #   pond.r <- mosaic(br, pond.r, fun=sum)
-  #   plot(pond.r, col = c("green", "blue"), legend=F)
-  #   
-  #   #Add layer to raster with terrestrial carrying capacity
-  #   terrestrial.k <-180    #Assuming 180 salamanders per 30 x 30 m cell
-  #   
-  #   terrestrial.k.r <- br 
-  #   terrestrial.k.r[,] <- 1
-  #   terrestrial.k.r <- terrestrial.k.r - pond.r
-  #   terrestrial.k.r <- terrestrial.k.r * terrestrial.k
-  #   
-  # plot(pond.r, col=c("green", "blue"))  
-  # plot(terrestrial.k.r, col=c("light blue", "dark green"))  
-
-  
   ## Initialize Pond Data Frame:
   ponds <- data.frame(Pond.ID = seq(1:n.ponds),
                       Pond.X = numeric(n.ponds), 
@@ -136,7 +97,7 @@
                      Nat.Pond = sample(1:n.ponds, n.inds, T), 
                      Patch.X = numeric(n.inds), 
                      Patch.Y = numeric(n.inds),
-                     Disp.Prob = round(rbeta(n.inds, disp.shape, disp.scale), 3), 
+                     Disp.Prob = round(rbeta(n.inds, disp.beta1, disp.beta2), 3), 
                      Breed.Pond = numeric(n.inds),
                      Init.Angle = numeric(n.inds), 
                      Disp.Dist = numeric(n.inds), 
@@ -186,30 +147,30 @@
 
       
         repeat{
-          print(paste0("Check Terr K for ind #", i))
-          Patch.K <- extract(ls[[2]], cbind(inds$Patch.X[i], inds$Patch.Y[i]))    ## extract patch K
+          Patch.K <- extract(ls[[2]], cbind(inds$Patch.X[i], inds$Patch.Y[i]))    ## extract patch 
+          patch.inds <- dim(subset(inds, Patch.X == inds$Patch.X[i] & inds$Patch.Y[i]))[1]   ## calculate # inds on patch
           
-          patch.inds <- dim(subset(inds, Patch.X == inds$Patch.X[i] & Patch.Y[i]))[1]   ## calculate # inds on patch
+          print(paste0("Check Terr K for ind #", i, " ----- Patch K = ", Patch.K, " ----- Patch.inds = ", patch.inds))
           
-          if(patch.inds <= floor(Patch.K / 2)) {
-            print("Patch not full, next ind")
-            break}  
+          if(patch.inds > floor(Patch.K / 2) | is.na(Patch.K)==T) {
+            print(paste0("Old Angle = ", round(inds$Init.Angle[i], 3), 
+                         " ----- Old Disp Dist = ", round(inds$Disp.Dist[i], 3), 
+                         " ----- Old XY-Coor = (", floor(inds$Patch.X[i]), ", ",
+                         floor(inds$Patch.Y[i]), ")"))
             
+            inds$Init.Angle[i] <- round(runif(1, 1, 360)) 
+            inds$Disp.Dist[i] <- rllogis(1, shape=disp.shape, scale=disp.scale)
+            inds$Patch.X[i] <- ponds[ponds$Pond.ID %in% inds$Nat.Pond[i], "Pond.X"] + 
+                                  inds$Disp.Dist[i] * sin((inds$Init.Angle[i])*(pi/180))
+            inds$Patch.Y[i] <- ponds[ponds$Pond.ID %in% inds$Nat.Pond[i], "Pond.Y"] + 
+                                  inds$Disp.Dist[i] * cos((inds$Init.Angle[i])*(pi/180))
+          }
             else {
-              print(paste0("Old Angle = ", round(inds$Init.Angle[i], 3), 
-                           " ----- Old Disp Dist = ", round(inds$Disp.Dist[i], 3), 
-                           " ----- Old XY-Coor = (", floor(inds$Patch.X[i]), ", ",
-                           floor(inds$Patch.Y[i]), ")"))
-              
-              inds$Init.Angle[i] <- round(runif(1, 1, 360)) 
-              inds$Disp.Dist[i] <- rllogis(1, shape=disp.shape, scale=disp.scale)
-              inds$Patch.X[i] <- ponds[ponds$Pond.ID %in% inds$Nat.Pond[i], "Pond.X"] + 
-                                    inds$Disp.Dist[i] * sin((inds$Init.Angle[i])*(pi/180))
-              inds$Patch.Y[i] <- ponds[ponds$Pond.ID %in% inds$Nat.Pond[i], "Pond.Y"] + 
-                                    inds$Disp.Dist[i] * cos((inds$Init.Angle[i])*(pi/180))
-            }  ## end else statement
-        }  ## end repeat loop
-    }  ## end for loop
+              print("Patch not full, next ind")
+              break 
+            }      ## end else statement
+        }      ## end repeat loop
+    }      ## end for loop
    
   
 
@@ -267,8 +228,8 @@ for(g in 1:n.gens){
           num.off$Rep.Active <- rep(F, times=n.off)                            ## Set reproductively active to "FALSE"
           num.off$IBI <- rep(0, times=n.off)                                   ## Set interbreeding interval to 0
           num.off$Nat.Pond <- rep(pond.list[p], times=n.off)                   ## Set natal pond to mother's breeding pond
-          num.off$Patch.X <- numeric(n.inds)                                   ## patch x-coordinate 
-          num.off$Patch.Y <- numeric(n.inds)                                   ## patch y-coordinate
+          num.off$Patch.X <- numeric(n.off)                                   ## patch x-coordinate 
+          num.off$Patch.Y <- numeric(n.off)                                   ## patch y-coordinate
           num.off$Disp.Prob <- round(rbeta(n.off, disp.beta1, disp.beta2), 3)  ## create a vector of dispersal probability
           num.off$Breed.Pond <- ifelse(num.off$Disp.Prob > philo.rate, yes=sample(unique(ponds$Pond.ID), 1, T), no=num.off$Nat.Pond)
           num.off$Init.Angle <- round(runif(n.off, 1, 360))                    ## choose initial movement angle
