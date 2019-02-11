@@ -7,15 +7,27 @@
 ## Load Packages:
 ## --------------
   if(!require(actuar)) install.packages('actuar'); library('actuar')
+  if(!require(adegenet)) install.packages('adegenet'); library("adegenet")
+  if(!require(pegas)) install.packages('pegas'); library("pegas")
+  if(!require(hierfstat)) install.packages('hierfstat'); library("hierfstat")
+  if(!require(mmod)) install.packages('mmod'); library("mmod")
+  if(!require(reshape2)) install.packages('reshape2'); library("reshape2")
+  if(!require(ggplot2)) install.packages('ggplot2'); library("ggplot2")
 ## --------------
+
+## Import Data Files: 
+## ------------------
+  gen.df <- read.csv(paste0(input.dir, "WEP_Modularity_DataFile.csv"), header=T, stringsAsFactors = F)        ## import genetic data (move to the model_initialization.R script later)
+    gen.df <- gen.df[,-((dim(gen.df)[2]-2):dim(gen.df)[2])]                                                   ## trim up the loci that were ommitted
+## ------------------
 
 ## Initialize Models:
 ## ------------------
   ## Input Parameters to automate changes:
     n.inds <- 100               ## number of individuals to create across all ponds
     n.ponds <- 5               ## number of initial ponds to create
-    n.patch <- 144             ## total number of patches ---- TEMPORARY, DELETE WHEN LANDSCAPE UPDATE WORKS
-    n.gens <- 200              ## number of generations to iterate over 
+    n.patch <- ls[[1]]@ncols * ls[[1]]@nrows            ## total number of patches ---- TEMPORARY, DELETE WHEN LANDSCAPE UPDATE WORKS
+    n.gens <- 100              ## number of generations to iterate over 
     
     pond.K.mult <- 2.25             ## Carrying capacity multiplier. Based off a Semlitsch paper 
     patch.K.mult <- 180             ## Carrying capacity multiplier for each 30x30 m grid cell
@@ -35,7 +47,7 @@
 
     min.age.F <- 2                   ## minimum age for reproduction - females
     min.age.M <- 1                   ## minumum age for reproduction - males
-    max.age <- 12                    ## maximum age for all adults
+    max.age <- 15                    ## maximum age for all adults
     
     max.disp.dist <- 5000            ## maximum possible dispersal distance (used for landscape border buffer)
     philo.rate <- 0.90               ## rate of philopatry
@@ -81,7 +93,7 @@
                                                                no=NA))))
   }
   
-  ponds$Pond.K <- round(K.mult * ponds$Pond.Area)
+  ponds$Pond.K <- round(pond.K.mult * ponds$Pond.Area)
   
   ponds$Pond.X <- as.data.frame(rasterToPoints(pond.r, function(x){x == 1}))$x
   ponds$Pond.Y <- as.data.frame(rasterToPoints(pond.r, function(x){x == 1}))$y
@@ -102,10 +114,17 @@
                      Init.Angle = numeric(n.inds), 
                      Disp.Dist = numeric(n.inds), 
                      Mort.Prob = numeric(n.inds), 
-                     LocA=numeric(n.inds), 
-                     LocB=numeric(n.inds), 
-                     LocC=numeric(n.inds), 
-                     LocD=numeric(n.inds)
+                     LocA=numeric(n.inds), LocB=numeric(n.inds), 
+                     LocC=numeric(n.inds), LocD=numeric(n.inds), 
+                     LocE=numeric(n.inds), LocF=numeric(n.inds),
+                     LocG=numeric(n.inds), LocH=numeric(n.inds),
+                     LocI=numeric(n.inds), LocJ=numeric(n.inds),
+                     LocK=numeric(n.inds), LocL=numeric(n.inds),
+                     LocM=numeric(n.inds), LocN=numeric(n.inds),
+                     LocO=numeric(n.inds), LocP=numeric(n.inds),
+                     LocQ=numeric(n.inds), LocR=numeric(n.inds),
+                     LocS=numeric(n.inds), LocT=numeric(n.inds),
+                     LocU=numeric(n.inds)
                      )
   
      inds$Breed.Pond <- ifelse(inds$Disp.Prob > philo.rate, yes=sample(unique(inds$Nat.Pond), 1, T), no=inds$Nat.Pond)
@@ -134,10 +153,29 @@
                                                            no = NA))))
       
       ## Initialize Genetic Data:
-      inds$LocA[i] <- paste0(sample(seq(100, 130, by=2), 1), ":", sample(seq(100, 130, by=2), 1))
-      inds$LocB[i] <- paste0(sample(seq(151, 171, by=2), 1), ":", sample(seq(151, 171, by=2), 1))
-      inds$LocC[i] <- paste0(sample(seq(200, 230, by=2), 1), ":", sample(seq(200, 230, by=2), 1))
-      inds$LocD[i] <- paste0(sample(seq(241, 261, by=2), 1), ":", sample(seq(241, 261, by=2), 1))
+          ## Try to automate this later. Can loop over columns if you tell where the columns start and where they end...  
+      inds$LocA[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_37, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_37, ":")), 1))
+      inds$LocB[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_50, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_50, ":")), 1))
+      inds$LocC[i] <- paste0(sample(unlist(strsplit(gen.df$ac300, ":")), 1), ":", sample(unlist(strsplit(gen.df$ac300, ":")), 1))
+      inds$LocD[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_25, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_25, ":")), 1))
+      inds$LocE[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_258, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_258, ":")), 1))
+      inds$LocF[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_85, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_85, ":")), 1))
+      inds$LocG[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_44, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_44, ":")), 1))
+      inds$LocH[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_39, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_39, ":")), 1))
+      inds$LocI[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_40, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_40, ":")), 1))
+      inds$LocJ[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_312, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_312, ":")), 1))
+      inds$LocK[i] <- paste0(sample(unlist(strsplit(gen.df$aj_346, ":")), 1), ":", sample(unlist(strsplit(gen.df$aj_346, ":")), 1))
+      inds$LocL[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_31, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_31, ":")), 1))
+      inds$LocM[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_311, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_311, ":")), 1))
+      inds$LocN[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_36, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_36, ":")), 1))
+      inds$LocO[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_21, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_21, ":")), 1))
+      inds$LocP[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_27, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_27, ":")), 1))
+      inds$LocQ[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_28, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_28, ":")), 1))
+      inds$LocR[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_86, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_86, ":")), 1))
+      inds$LocS[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_153, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_153, ":")), 1))
+      inds$LocT[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_84, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_84, ":")), 1))
+      inds$LocU[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_314, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_314, ":")), 1))
+      
       
       ## Intialize Dispersal Data: 
       inds$Init.Angle[i] <- round(runif(1, 1, 360)) 
@@ -148,15 +186,15 @@
       
         repeat{
           Patch.K <- extract(ls[[2]], cbind(inds$Patch.X[i], inds$Patch.Y[i]))    ## extract patch 
-          patch.inds <- dim(subset(inds, Patch.X == inds$Patch.X[i] & inds$Patch.Y[i]))[1]   ## calculate # inds on patch
+          patch.inds <- dim(subset(inds, Patch.X == inds$Patch.X[i] & Patch.Y == inds$Patch.Y[i]))[1]   ## calculate # inds on patch Resident surface and update that. 
           
           print(paste0("Check Terr K for ind #", i, " ----- Patch K = ", Patch.K, " ----- Patch.inds = ", patch.inds))
           
           if(patch.inds > floor(Patch.K / 2) | is.na(Patch.K)==T) {
-            print(paste0("Old Angle = ", round(inds$Init.Angle[i], 3), 
-                         " ----- Old Disp Dist = ", round(inds$Disp.Dist[i], 3), 
-                         " ----- Old XY-Coor = (", floor(inds$Patch.X[i]), ", ",
-                         floor(inds$Patch.Y[i]), ")"))
+            # print(paste0("Old Angle = ", round(inds$Init.Angle[i], 3), 
+            #              " ----- Old Disp Dist = ", round(inds$Disp.Dist[i], 3), 
+            #              " ----- Old XY-Coor = (", floor(inds$Patch.X[i]), ", ",
+            #              floor(inds$Patch.Y[i]), ")"))
             
             inds$Init.Angle[i] <- round(runif(1, 1, 360)) 
             inds$Disp.Dist[i] <- rllogis(1, shape=disp.shape, scale=disp.scale)
@@ -166,7 +204,7 @@
                                   inds$Disp.Dist[i] * cos((inds$Init.Angle[i])*(pi/180))
           }
             else {
-              print("Patch not full, next ind")
+              # print("Patch not full, next ind")
               break 
             }      ## end else statement
         }      ## end repeat loop
@@ -241,17 +279,27 @@ for(g in 1:n.gens){
           ## Genetics --
             ## System mimics polyandry. Randomly selects one of two females alleles, equal to number of offspring. 
             ## Randomly selects on of males alleles at each locus, each offspring has single paternity.
-            num.off$LocA <- paste0(unlist(strsplit(rep.feme$LocA[f], ":"))[sample(1:2, n.off, T)], ":",  
-                                   unlist(strsplit(male.df$LocA, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
-            num.off$LocB <- paste0(unlist(strsplit(rep.feme$LocB[f], ":"))[sample(1:2, n.off, T)], ":",  
-                                   unlist(strsplit(male.df$LocB, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
-            num.off$LocC <- paste0(unlist(strsplit(rep.feme$LocC[f], ":"))[sample(1:2, n.off, T)], ":",  
-                                   unlist(strsplit(male.df$LocC, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
-            num.off$LocD <- paste0(unlist(strsplit(rep.feme$LocD[f], ":"))[sample(1:2, n.off, T)], ":",  
-                                   unlist(strsplit(male.df$LocD, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
-          
-         ## Dispersal: 
-            
+            num.off$LocA <- paste0(unlist(strsplit(rep.feme$LocA[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocA, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocB <- paste0(unlist(strsplit(rep.feme$LocB[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocB, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocC <- paste0(unlist(strsplit(rep.feme$LocC[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocC, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocD <- paste0(unlist(strsplit(rep.feme$LocD[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocD, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocE <- paste0(unlist(strsplit(rep.feme$LocE[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocE, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocF <- paste0(unlist(strsplit(rep.feme$LocF[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocF, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocG <- paste0(unlist(strsplit(rep.feme$LocG[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocG, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocH <- paste0(unlist(strsplit(rep.feme$LocH[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocH, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocI <- paste0(unlist(strsplit(rep.feme$LocI[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocI, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocJ <- paste0(unlist(strsplit(rep.feme$LocJ[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocJ, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocK <- paste0(unlist(strsplit(rep.feme$LocK[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocK, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocL <- paste0(unlist(strsplit(rep.feme$LocL[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocL, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocM <- paste0(unlist(strsplit(rep.feme$LocM[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocM, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocN <- paste0(unlist(strsplit(rep.feme$LocN[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocN, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocO <- paste0(unlist(strsplit(rep.feme$LocO[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocO, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocP <- paste0(unlist(strsplit(rep.feme$LocP[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocP, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocQ <- paste0(unlist(strsplit(rep.feme$LocQ[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocQ, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocR <- paste0(unlist(strsplit(rep.feme$LocR[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocR, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocS <- paste0(unlist(strsplit(rep.feme$LocS[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocS, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocT <- paste0(unlist(strsplit(rep.feme$LocT[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocT, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocU <- paste0(unlist(strsplit(rep.feme$LocU[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocU, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
         }
         
         ## Update output data frame
@@ -327,10 +375,58 @@ print(round(Sys.time() - start.time, 2))         ## end timer
   
 ## --------------------
   
+
 ## Save Genetic Data:
 ## ------------------
   ## Manipulate data? Export Genepop from gstudio?
-  # write.csv()  
+    g.df <- inds
+    g.df$Ind.ID <- paste0("N", g.df$Nat.Pond, "B", g.df$Breed.Pond, "-", g.df$Sex, "-", rownames(g.df))   
+    g.df <- gen.df[,c("Ind.ID", "Breed.Pond", 
+                      "LocA", "LocB", "LocC", "LocD", "LocE", "LocF", "LocG", "LocH", "LocI", "LocJ", "LocK", 
+                      "LocL", "LocM", "LocN", "LocO", "LocP", "LocQ", "LocR", "LocS", "LocT", "LocU")]
+
+    gen.data <- df2genind(X=g.df[,c("LocA", "LocB", "LocC", "LocD", "LocE", "LocF", "LocG", "LocH", "LocI", "LocJ", "LocK", 
+                                    "LocL", "LocM", "LocN", "LocO", "LocP", "LocQ", "LocR", "LocS", "LocT", "LocU")],
+                          ind.names=g.df$Ind.ID,
+                          loc.names=c("LocA", "LocB", "LocC", "LocD", "LocE", "LocF", "LocG", "LocH", "LocI", "LocJ", "LocK", 
+                                      "LocL", "LocM", "LocN", "LocO", "LocP", "LocQ", "LocR", "LocS", "LocT", "LocU"),
+                          type="codom",
+                          # strata=gen.df$Breed.Pond,
+                          pop=g.df$Breed.Pond,
+                          sep=":",
+                          ncode=3)
+    
+    summary(gen.data)
+    bartlett.test(list(summary(gen.data)$Hexp, summary(gen.data)$Hobs))
+    
+    gen.hier <- genind2hierfstat(gen.data, pop = gen.data@pop)
+    gen.hier$pop <- paste0("P-", gen.hier$pop)
+    basicstat <- basic.stats(gen.hier, diploid = TRUE)
+    names(basicstat)
+    
+    boot.ppfis(gen.hier) 
+    indpca(gen.hier)
+    plot(indpca(gen.hier), cex = 0.7)
+    
+    
+    setPop(gen.data) <- ~pop
+    gen_diff <- diff_stats(gen.data)
+    
+    
+    
+    
+    
+      ## Manipulate data? Export Genepop from gstudio?
+      gen.data <- inds
+      gen.data$ind <- paste0("NP", gen.data$Nat.Pond, "-BP", gen.data$Breed.Pond, "-", gen.data$Sex, "-", row.names(gen.data))
+      gen.data$pop <- paste0("Pond-", gen.data$Breed.Pond)
+      gen.data <- gen.data[ , c("ind", "pop", "Patch.X", "Patch.Y", "Sex", "Age", 
+                                "LocA", "LocB", "LocC", "LocD", "LocE", "LocF", "LocG", "LocH", "LocI", "LocJ", "LocK",
+                                "LocL", "LocM", "LocN", "LocO", "LocP", "LocQ", "LocR", "LocS", "LocT", "LocU")]
+    
+      gen.data2 <- df2genind(X = gen.data, sep=":", ploidy=2, pop=gen.data$pop, ind.names=gen.data$ind)
+      g.out <- popgenreport(gen.data2, mk.counts = T, mk.fst = T, mk.allele.dist = T, mk.pdf = F)
+      #write.csv()  
 ## ------------------
     
     
@@ -339,18 +435,18 @@ print(round(Sys.time() - start.time, 2))         ## end timer
   par(mfrow=c(2,3))
    
     hist(inds0$Age, col=rgb(0,0,1,0.5), xlim=c(0,max.age+1),
-         main="Age Dist. - Final", xlab="Age (years)")
-    plot(inds0$Age, inds0$SVL, col=as.factor(inds0$Sex), pch=17, 
+         main="Age Distribution - Initial", xlab="Age (years)")
+    plot(inds0$SVL ~ jitter(inds0$Age, 1), col=ifelse(inds0$Sex=="M", "blue", "red"), pch=16, cex=0.75, 
          main="Age x SVL x Sex - Inital", xlab="Age (years)", ylab="SVL (mm)")
-    plot(inds0$Age, inds0$SVL, col=as.factor(inds0$Rep.Active), pch=17,
+    plot(inds0$SVL ~ jitter(inds0$Age, 1), col=ifelse(inds0$Rep.Active==T, "orange", "black"), pch=16, cex=0.75, 
          main="Age x SVL x Rep. Active - Initial", 
          xlab="Age (years)", ylab="SVL (mm)")
     
     hist(inds$Age, col=rgb(1,0,0,0.5), xlim=c(0,max.age+1), 
-         main="Age Dist. - Final", xlab="Age (years)")
-    plot(inds$Age, inds$SVL, col=as.factor(inds$Sex), pch=16, 
+         main="Age Distribution - Final", xlab="Age (years)")
+    plot(inds$SVL ~ jitter(inds$Age, 1), col=ifelse(inds$Sex=="M", "blue", "red"), pch=16, cex=0.75, 
          main="Age x SVL x Sex - Final", xlab="Age (years)", ylab="SVL (mm)")
-    plot(inds$Age, inds$SVL, col=as.factor(inds$Rep.Active), pch=16,
+    plot(inds$SVL ~ jitter(inds$Age, 1), col=ifelse(inds$Rep.Active==T, "orange", "black"), pch=16, cex=0.75,
          main="Age x SVL x Rep. Active - Final", 
          xlab="Age (years)", ylab="SVL (mm)")
     
