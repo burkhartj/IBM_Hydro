@@ -279,6 +279,7 @@ for(g in 1:n.gens){
           ## Genetics --
             ## System mimics polyandry. Randomly selects one of two females alleles, equal to number of offspring. 
             ## Randomly selects on of males alleles at each locus, each offspring has single paternity.
+<<<<<<< HEAD
             num.off$LocA <- paste0(unlist(strsplit(rep.feme$LocA[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocA, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
             num.off$LocB <- paste0(unlist(strsplit(rep.feme$LocB[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocB, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
             num.off$LocC <- paste0(unlist(strsplit(rep.feme$LocC[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocC, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
@@ -300,6 +301,50 @@ for(g in 1:n.gens){
             num.off$LocS <- paste0(unlist(strsplit(rep.feme$LocS[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocS, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
             num.off$LocT <- paste0(unlist(strsplit(rep.feme$LocT[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocT, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
             num.off$LocU <- paste0(unlist(strsplit(rep.feme$LocU[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocU, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+=======
+            num.off$LocA <- paste0(unlist(strsplit(rep.feme$LocA[f], ":"))[sample(1:2, n.off, T)], ":",  
+                                   unlist(strsplit(male.df$LocA, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocB <- paste0(unlist(strsplit(rep.feme$LocB[f], ":"))[sample(1:2, n.off, T)], ":",  
+                                   unlist(strsplit(male.df$LocB, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocC <- paste0(unlist(strsplit(rep.feme$LocC[f], ":"))[sample(1:2, n.off, T)], ":",  
+                                   unlist(strsplit(male.df$LocC, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocD <- paste0(unlist(strsplit(rep.feme$LocD[f], ":"))[sample(1:2, n.off, T)], ":",  
+                                   unlist(strsplit(male.df$LocD, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocE <- paste0(unlist(strsplit(rep.feme$LocE[f], ":"))[sample(1:2, n.off, T)], ":",  
+                                   unlist(strsplit(male.df$LocE, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocF <- paste0(unlist(strsplit(rep.feme$LocF[f], ":"))[sample(1:2, n.off, T)], ":",  
+                                   unlist(strsplit(male.df$LocF, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocG <- paste0(unlist(strsplit(rep.feme$LocG[f], ":"))[sample(1:2, n.off, T)], ":",  
+                                   unlist(strsplit(male.df$LocG, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocH <- paste0(unlist(strsplit(rep.feme$LocH[f], ":"))[sample(1:2, n.off, T)], ":",  
+                                   unlist(strsplit(male.df$LocH, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocI <- paste0(unlist(strsplit(rep.feme$LocI[f], ":"))[sample(1:2, n.off, T)], ":",  
+                                   unlist(strsplit(male.df$LocI, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocJ <- paste0(unlist(strsplit(rep.feme$LocJ[f], ":"))[sample(1:2, n.off, T)], ":",  
+                                   unlist(strsplit(male.df$LocJ, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocK <- paste0(unlist(strsplit(rep.feme$LocK[f], ":"))[sample(1:2, n.off, T)], ":",  
+                                   unlist(strsplit(male.df$LocK, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocL <- paste0(unlist(strsplit(rep.feme$LocL[f], ":"))[sample(1:2, n.off, T)], ":",  
+                                   unlist(strsplit(male.df$LocL, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocM <- paste0(unlist(strsplit(rep.feme$LocM[f], ":"))[sample(1:2, n.off, T)], ":",  
+                                   unlist(strsplit(male.df$LocM, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocN <- paste0(unlist(strsplit(rep.feme$LocN[f], ":"))[sample(1:2, n.off, T)], ":",  
+                                   unlist(strsplit(male.df$LocN, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocO <- paste0(unlist(strsplit(rep.feme$LocO[f], ":"))[sample(1:2, n.off, T)], ":",  
+                                   unlist(strsplit(male.df$LocO, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocP <- paste0(unlist(strsplit(rep.feme$LocP[f], ":"))[sample(1:2, n.off, T)], ":",  
+                                   unlist(strsplit(male.df$LocP, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocQ <- paste0(unlist(strsplit(rep.feme$LocQ[f], ":"))[sample(1:2, n.off, T)], ":",  
+                                   unlist(strsplit(male.df$LocQ, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocR <- paste0(unlist(strsplit(rep.feme$LocR[f], ":"))[sample(1:2, n.off, T)], ":",  
+                                   unlist(strsplit(male.df$LocR, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocS <- paste0(unlist(strsplit(rep.feme$LocS[f], ":"))[sample(1:2, n.off, T)], ":",  
+                                   unlist(strsplit(male.df$LocS, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocT <- paste0(unlist(strsplit(rep.feme$LocT[f], ":"))[sample(1:2, n.off, T)], ":",  
+                                   unlist(strsplit(male.df$LocT, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            num.off$LocU <- paste0(unlist(strsplit(rep.feme$LocU[f], ":"))[sample(1:2, n.off, T)], ":",  
+                                   unlist(strsplit(male.df$LocU, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+>>>>>>> eb5ba32de58bf98a729efbb6b97bbb5a1f7f9bcc
         }
         
         ## Update output data frame
