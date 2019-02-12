@@ -114,6 +114,7 @@ repeat{                ## Loop over all dispersing animals
   die.disp <- 0
   success.disp <- 0
   fell.off.disp <-0
+  disp.to.adj <- 0
   new.ang <- sample(1:360, replace = TRUE, size = 1)     ## randomly select an initial angle
   dist.max <- rtrunc(n = 1, spec = "llogis", a = 30, b = 2000, shape = 1.5, scale = 30) #Max dispersal distance
   ang <- NULL                  ## create empty vector for storing movement angles? 
@@ -133,43 +134,44 @@ repeat{                ## Loop over all dispersing animals
     
     #If move max distance, die and move on to next individual
     if (dist.traveled >= dist.max) {
-      die.disp <- 1
-      break}
+        die.disp <- 1
+        break}
     
     #If find available home (Terrestrial.Resident < Terrestrial.k), stop and move on to next individual
     if (extract( ls[[1]], cbind(new.x,new.y)) == 0 &       #If not on pond cell
         extract( ls[[3]], cbind(new.x,new.y)) < extract( ls[[2]], cbind(new.x,new.y))){ #And k is  greater than number of patch occupants
-      success.disp <- 1
-      disp.cell <- cellFromXY(ls, cbind(new.x,new.y))
-      terrestrial.resident.r <- raster(ls, layer = 3)
-      terrestrial.resident.r[disp.cell] <- terrestrial.resident.r[disp.cell]+1
-      ls <- stack(pond.r, terrestrial.k.r, terrestrial.resident.r, dist.r)
-      break}
+        success.disp <- 1
+        disp.cell <- cellFromXY(ls, cbind(new.x,new.y))
+        terrestrial.resident.r <- raster(ls, layer = 3)
+        terrestrial.resident.r[disp.cell] <- terrestrial.resident.r[disp.cell]+1
+        ls <- stack(pond.r, terrestrial.k.r, terrestrial.resident.r, dist.r)
+        break}
     
-#Check neighborhood for available home (Terrestrial.Resident < Terrestrial.k), stop and move on to next individual
-adj.cells <- adjacent(x = terrestrial.resident.r,
+    #Check neighborhood for available home (Terrestrial.Resident < Terrestrial.k), stop and move on to next individual
+    adj.cells <- adjacent(x = terrestrial.resident.r,
                       cells = cellFromXY(terrestrial.resident.r, cbind(new.x,new.y)),
                       directions = sensing.matrix, pairs = FALSE, sorted=TRUE)
-available <- extract(x = terrestrial.k.r, y = adj.cells) - extract(x = terrestrial.resident.r, y = adj.cells)
+    available <- extract(x = terrestrial.k.r, y = adj.cells) - extract(x = terrestrial.resident.r, y = adj.cells)
 
-#Assign salamander to first available
-i <- 0
-repeat{
-  i <- i + 1
-  if(i > length(available)){
-    break
-  }
+    #Assign salamander to first available
+    i <- 0
+    repeat{
+      i <- i + 1
+      if(i > length(available)){
+         break}
 
-  if(available[i] > 0){
-    success.disp <- 1
-    disp.cell <- adj.cells[i]
-    terrestrial.resident.r <- raster(ls, layer = 3)
-    terrestrial.resident.r[disp.cell] <- terrestrial.resident.r[disp.cell]+1
-    ls <- stack(pond.r, terrestrial.k.r, terrestrial.resident.r, dist.r)
-    break
-  }
-   }
-    
+      if(available[i] > 0){
+         disp.to.adj <- 1
+         disp.cell <- adj.cells[i]
+         terrestrial.resident.r <- raster(ls, layer = 3)
+         terrestrial.resident.r[disp.cell] <- terrestrial.resident.r[disp.cell]+1
+         ls <- stack(pond.r, terrestrial.k.r, terrestrial.resident.r, dist.r)
+         break}
+      }
+  
+    if(disp.to.adj <- 1){
+      success.disp <- 1
+      break}
     
     dist.traveled <- dist.traveled + new.move    ## calculate the total distance traveled for the animal
   }
