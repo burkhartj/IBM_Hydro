@@ -11,8 +11,8 @@ r <- raster(matrix(0, landscape.x.rows, landscape.y.columns),
 
 #Make layer with ponds
 pond.r <- makeClass(r,                      #Raster name
-                    pond.num,               #Number of ponds
-                    rnorm(pond.num, pond.size.mean, pond.size.sd),      #Pond size
+                    n.ponds,               #Number of ponds
+                    rnorm(n.ponds, pond.size.mean, pond.size.sd),      #Pond size
                     val = pond.hydro.class)       #Pond class
 
 ## Make border landscape to contain all dispersers within max dispersal distance of max pond raster extent
