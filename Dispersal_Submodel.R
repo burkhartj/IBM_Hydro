@@ -10,6 +10,7 @@ ind.moves <- NULL         ## stores the total number of moves for each animal
 die <- NULL
 success <- NULL
 fell.off <- NULL
+new.move <- 30
 
 ## Simulation Code
 repeat{                ## Loop over all dispersing animals
@@ -76,7 +77,7 @@ repeat{                ## Loop over all dispersing animals
          break}
       }
   
-    if(disp.to.adj <- 1){
+    if(disp.to.adj == 1){
       success.disp <- 1
       break}
     
