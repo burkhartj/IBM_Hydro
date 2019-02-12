@@ -25,7 +25,7 @@ br <- raster(matrix(0, (dim(pond.r)[1]+ceiling(max.disp.dist*2/30)), (dim(pond.r
 pond.r <- mosaic(br, pond.r, fun=sum)     ## make pond raster with the terrestrial border
 
 #Make terrestrial carrying capacity layer
-terrestrial.k.r <- ((br + 1) - pond.r) ^2
+terrestrial.k.r <- ((br + terrestrial.k) * abs(pond.r-1)) #^2
 
 #Empty layer to assign residents to 
 terrestrial.resident.r <- br
