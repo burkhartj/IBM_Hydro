@@ -13,11 +13,17 @@
   if(!require(mmod)) install.packages('mmod'); library("mmod")
   if(!require(reshape2)) install.packages('reshape2'); library("reshape2")
   if(!require(ggplot2)) install.packages('ggplot2'); library("ggplot2")
+  if(!require(magicfor)) devtools::install_github("hoxo-m/magicfor"); library("magicfor")
 ## --------------
+
+## Source Landscape code:
+## ----------------------
+# source("C:/Users/jjbxb3/Git_Repository/IBM_Hydro/Landscape_Submodel.R")
+## ----------------------
 
 ## Import Data Files: 
 ## ------------------
-  gen.df <- read.csv(paste0(input.dir, "WEP_Modularity_DataFile.csv"), header=T, stringsAsFactors = F)        ## import genetic data (move to the model_initialization.R script later)
+  gen.df <- read.csv("C:/Users/jjbxb3/Box Sync/Mizzou/Research/IBM_Hydro-desktop/Data/WEP_Modularity_DataFile.csv", header=T, stringsAsFactors = F)        ## import genetic data (move to the model_initialization.R script later)
     gen.df <- gen.df[,-((dim(gen.df)[2]-2):dim(gen.df)[2])]                                                   ## trim up the loci that were ommitted
 ## ------------------
 
@@ -26,7 +32,7 @@
   ## Input Parameters to automate changes:
     n.inds <- 100               ## number of individuals to create across all ponds
     n.ponds <- 5               ## number of initial ponds to create
-    n.patch <- ls[[1]]@ncols * ls[[1]]@nrows            ## total number of patches ---- TEMPORARY, DELETE WHEN LANDSCAPE UPDATE WORKS
+    n.patch <- ls[[1]]@ncols * ls[[1]]@nrows      ## total number of patches 
     n.gens <- 100              ## number of generations to iterate over 
     
     pond.K.mult <- 2.25             ## Carrying capacity multiplier. Based off a Semlitsch paper 
@@ -47,7 +53,7 @@
 
     min.age.F <- 2                   ## minimum age for reproduction - females
     min.age.M <- 1                   ## minumum age for reproduction - males
-    max.age <- 15                    ## maximum age for all adults
+    max.age <- 15                    ## maximum age for all adults (based on winters thesis)
     
     max.disp.dist <- 5000            ## maximum possible dispersal distance (used for landscape border buffer)
     philo.rate <- 0.90               ## rate of philopatry
@@ -222,6 +228,8 @@
 
 inds0 <- inds    
 
+magic_for(silent=T)
+
 start.time <- Sys.time()       
 for(g in 1:n.gens){    
   ## Set Up Breeding Functionality
@@ -249,27 +257,27 @@ for(g in 1:n.gens){
                               inds$SVL>=min.SVL.M & inds$Age>=min.age.M)),
                           yes = 1, no = inds$Bred)
       
-      for(f in 1:dim(rep.feme)[1]){   
-        n.off <- round((8.47 * rep.feme$SVL[f] - 380) * abs(rnorm(1, 0.355, 0.11)))      ## Size based fecundity * survival to age 1
-        n.off <- ifelse(n.off < 0, yes=0, no=n.off)
+      for(f in 1:dim(rep.feme)[1]){                                                     ## loop over reproductively active females
+        n.off <- round((8.47 * rep.feme$SVL[f] - 380) * abs(rnorm(1, 0.355, 0.11)))     ## Size based fecundity * survival to age 1
+        n.off <- ifelse(n.off < 0, yes=0, no=n.off)                                     ## adjust number of offspring if negative value (happens with the -380, occassionally)
       
-        male.df <- rep.male[sample(1:dim(rep.male)[1], n.off, replace=T), ]
+        male.df <- rep.male[sample(1:dim(rep.male)[1], n.off, replace=T), ]             ## data frame of males chosen to breed with a female (sampled with replacement) 
         
-        if(n.off > 0){  
-          num.off <- as.data.frame(matrix(nrow = n.off, ncol=dim(inds)[2]))                ## create empty data frame to populate with an individual female's offspring during breeding loop
-          colnames(num.off) <- colnames(inds)
+        if(n.off > 0){                                                                  ## check that there are offspring to create, if so -> breed, if not -> next reproductive female
+          num.off <- as.data.frame(matrix(nrow = n.off, ncol=dim(inds)[2]))             ## create empty data frame to populate w/ female's offspring during breeding loop
+          colnames(num.off) <- colnames(inds)                                           ## assign column names from "ind" data frame, in the same order (essentially for later joining)
           
           ## Demographics
-          num.off$Sex <- sample(c("F", "M"), n.off, T)
-          num.off$Age <- rep(0, times=n.off)
-          num.off$SVL <- round(rnorm(n.off, SVL.0.mu, SVL.0.sd), 2)            ## random normal draw for now. will update to density dependent
+          num.off$Sex <- sample(c("F", "M"), n.off, T)                         ## randomly assign sex (50:50 draw)
+          num.off$Age <- rep(0, times=n.off)                                   ## initialize age
+          num.off$SVL <- round(rnorm(n.off, SVL.0.mu, SVL.0.sd), 2)            ## SVL at metamorphosis; ---- UPDATE LATER: random normal draw for now. will update to density dependent
           num.off$Rep.Active <- rep(F, times=n.off)                            ## Set reproductively active to "FALSE"
           num.off$IBI <- rep(0, times=n.off)                                   ## Set interbreeding interval to 0
           num.off$Nat.Pond <- rep(pond.list[p], times=n.off)                   ## Set natal pond to mother's breeding pond
-          num.off$Patch.X <- numeric(n.off)                                   ## patch x-coordinate 
-          num.off$Patch.Y <- numeric(n.off)                                   ## patch y-coordinate
+          num.off$Patch.X <- numeric(n.off)                                    ## patch x-coordinate; populate with dispersal submodel later
+          num.off$Patch.Y <- numeric(n.off)                                    ## patch y-coordinate; populate with dispersal submodel later
           num.off$Disp.Prob <- round(rbeta(n.off, disp.beta1, disp.beta2), 3)  ## create a vector of dispersal probability
-          num.off$Breed.Pond <- ifelse(num.off$Disp.Prob > philo.rate, yes=sample(unique(ponds$Pond.ID), 1, T), no=num.off$Nat.Pond)
+          num.off$Breed.Pond <- ifelse(num.off$Disp.Prob > philo.rate, yes=sample(unique(ponds$Pond.ID), 1, T), no=num.off$Nat.Pond)     ## assing new breeding pond --- DOUBLE CHECK THAT DISPERSAL SUBMODEL DOESN'T OVERRIDE THIS, if so, make an empty numeric vector
           num.off$Init.Angle <- round(runif(n.off, 1, 360))                    ## choose initial movement angle
           num.off$Disp.Dist <- rllogis(1, shape=disp.shape, scale=disp.scale)  ## Peterman et al. 2015 dispersal distance for A. annulatum? 1,693m (95% CI 1,645-1,740 m for AMAN)
           num.off$Mort.Prob <- numeric(n.off)                                  ## empty vector for later imposing mortality 
@@ -278,8 +286,7 @@ for(g in 1:n.gens){
           
           ## Genetics --
             ## System mimics polyandry. Randomly selects one of two females alleles, equal to number of offspring. 
-            ## Randomly selects on of males alleles at each locus, each offspring has single paternity.
-<<<<<<< HEAD
+            ## Randomly selects one of males alleles at each locus, each offspring has single paternity.
             num.off$LocA <- paste0(unlist(strsplit(rep.feme$LocA[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocA, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
             num.off$LocB <- paste0(unlist(strsplit(rep.feme$LocB[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocB, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
             num.off$LocC <- paste0(unlist(strsplit(rep.feme$LocC[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocC, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
@@ -301,54 +308,10 @@ for(g in 1:n.gens){
             num.off$LocS <- paste0(unlist(strsplit(rep.feme$LocS[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocS, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
             num.off$LocT <- paste0(unlist(strsplit(rep.feme$LocT[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocT, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
             num.off$LocU <- paste0(unlist(strsplit(rep.feme$LocU[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocU, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
-=======
-            num.off$LocA <- paste0(unlist(strsplit(rep.feme$LocA[f], ":"))[sample(1:2, n.off, T)], ":",  
-                                   unlist(strsplit(male.df$LocA, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
-            num.off$LocB <- paste0(unlist(strsplit(rep.feme$LocB[f], ":"))[sample(1:2, n.off, T)], ":",  
-                                   unlist(strsplit(male.df$LocB, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
-            num.off$LocC <- paste0(unlist(strsplit(rep.feme$LocC[f], ":"))[sample(1:2, n.off, T)], ":",  
-                                   unlist(strsplit(male.df$LocC, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
-            num.off$LocD <- paste0(unlist(strsplit(rep.feme$LocD[f], ":"))[sample(1:2, n.off, T)], ":",  
-                                   unlist(strsplit(male.df$LocD, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
-            num.off$LocE <- paste0(unlist(strsplit(rep.feme$LocE[f], ":"))[sample(1:2, n.off, T)], ":",  
-                                   unlist(strsplit(male.df$LocE, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
-            num.off$LocF <- paste0(unlist(strsplit(rep.feme$LocF[f], ":"))[sample(1:2, n.off, T)], ":",  
-                                   unlist(strsplit(male.df$LocF, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
-            num.off$LocG <- paste0(unlist(strsplit(rep.feme$LocG[f], ":"))[sample(1:2, n.off, T)], ":",  
-                                   unlist(strsplit(male.df$LocG, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
-            num.off$LocH <- paste0(unlist(strsplit(rep.feme$LocH[f], ":"))[sample(1:2, n.off, T)], ":",  
-                                   unlist(strsplit(male.df$LocH, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
-            num.off$LocI <- paste0(unlist(strsplit(rep.feme$LocI[f], ":"))[sample(1:2, n.off, T)], ":",  
-                                   unlist(strsplit(male.df$LocI, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
-            num.off$LocJ <- paste0(unlist(strsplit(rep.feme$LocJ[f], ":"))[sample(1:2, n.off, T)], ":",  
-                                   unlist(strsplit(male.df$LocJ, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
-            num.off$LocK <- paste0(unlist(strsplit(rep.feme$LocK[f], ":"))[sample(1:2, n.off, T)], ":",  
-                                   unlist(strsplit(male.df$LocK, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
-            num.off$LocL <- paste0(unlist(strsplit(rep.feme$LocL[f], ":"))[sample(1:2, n.off, T)], ":",  
-                                   unlist(strsplit(male.df$LocL, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
-            num.off$LocM <- paste0(unlist(strsplit(rep.feme$LocM[f], ":"))[sample(1:2, n.off, T)], ":",  
-                                   unlist(strsplit(male.df$LocM, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
-            num.off$LocN <- paste0(unlist(strsplit(rep.feme$LocN[f], ":"))[sample(1:2, n.off, T)], ":",  
-                                   unlist(strsplit(male.df$LocN, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
-            num.off$LocO <- paste0(unlist(strsplit(rep.feme$LocO[f], ":"))[sample(1:2, n.off, T)], ":",  
-                                   unlist(strsplit(male.df$LocO, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
-            num.off$LocP <- paste0(unlist(strsplit(rep.feme$LocP[f], ":"))[sample(1:2, n.off, T)], ":",  
-                                   unlist(strsplit(male.df$LocP, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
-            num.off$LocQ <- paste0(unlist(strsplit(rep.feme$LocQ[f], ":"))[sample(1:2, n.off, T)], ":",  
-                                   unlist(strsplit(male.df$LocQ, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
-            num.off$LocR <- paste0(unlist(strsplit(rep.feme$LocR[f], ":"))[sample(1:2, n.off, T)], ":",  
-                                   unlist(strsplit(male.df$LocR, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
-            num.off$LocS <- paste0(unlist(strsplit(rep.feme$LocS[f], ":"))[sample(1:2, n.off, T)], ":",  
-                                   unlist(strsplit(male.df$LocS, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
-            num.off$LocT <- paste0(unlist(strsplit(rep.feme$LocT[f], ":"))[sample(1:2, n.off, T)], ":",  
-                                   unlist(strsplit(male.df$LocT, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
-            num.off$LocU <- paste0(unlist(strsplit(rep.feme$LocU[f], ":"))[sample(1:2, n.off, T)], ":",  
-                                   unlist(strsplit(male.df$LocU, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
->>>>>>> eb5ba32de58bf98a729efbb6b97bbb5a1f7f9bcc
         }
         
         ## Update output data frame
-        off.pond <- rbind(off.pond, num.off)
+        off.pond <- rbind(off.pond, num.off)           ## save female offspring data to a temporary pond data frame
         
       }  ## end FEMALES iterations
       
@@ -358,30 +321,30 @@ for(g in 1:n.gens){
                                       size = (dim(off.pond)[1]) - ponds[ponds$Pond.ID %in% pond.list[p], "Pond.K"]), ]
       }
       
-      ## Create the offspring data set... might be able to pull straight into the 'inds' data frame... 
-      off.df <- rbind(off.df, off.pond)
+      ## Update output data set... might be able to pull straight into the 'inds' data frame... 
+      off.df <- rbind(off.df, off.pond)             ## save pond data to a temporary generation offspring data frame 
       
     } ## end IF statement
   
   } ## end POND iterations
   
   ## Join new and old data frames 
-  inds <- rbind(inds, off.df)
+  inds <- rbind(inds, off.df)                 ## join surviving offspring data into the full data set
   
-  print(table(inds$Breed.Pond))
+  print(table(inds$Breed.Pond))               ## report the number of individuals that bred
   
 ## Grow, Mature, Death:
 ## --------------------
   ## Update demographic information 
-  inds$Age <- inds$Age + 1
+  inds$Age <- inds$Age + 1                                                             ## age everybody by one year
   inds$SVL <- ifelse(inds$Age == 1, yes=0.785 * inds$SVL + 19.9,  
                      no=ifelse(inds$Age == 2, yes=0.937 * inds$SVL + 7.36, 
                                no=ifelse(inds$Age == 3, yes=inds$SVL + 2.5, 
                                          no=ifelse(inds$Age == 4, yes=inds$SVL + 1.5, 
-                                                   no=ifelse(inds$Age >=5, yes=inds$SVL + (inds$Age - 4) * 0.5, no=NA)))))
+                                                   no=ifelse(inds$Age >=5, yes=inds$SVL + (inds$Age - 4) * 0.5, no=NA)))))   ## grow individuals based on Taylor and Scott equations
   
-  inds$IBI <- ifelse(inds$Bred == 1, yes = 0, no = inds$IBI + 1)
-  inds$Rep.Active <- ifelse((inds$Bred==1 & inds$Sex=="F"),
+  inds$IBI <- ifelse(inds$Bred == 1, yes = 0, no = inds$IBI + 1)              ## calculate inter-breeding interval
+  inds$Rep.Active <- ifelse((inds$Bred==1 & inds$Sex=="F"),                   ## update reproductive activity status
                             yes=F,
                             no=ifelse((inds$Sex=="F" & inds$Age>=min.age.F & inds$SVL>=min.SVL.F), 
                                       yes = sample(c(T, F), dim(subset(inds, Sex=="F" & Age>=min.age.F & SVL>=min.SVL.F)[1]), replace=T), 
@@ -392,12 +355,12 @@ for(g in 1:n.gens){
   
   
   ## Impose Age based mortality
-  inds <- inds[which(inds$Age <= max.age), ]                                              ## keep only individuals less than the hard upper age cut off
-  inds$Mort.Prob <- runif(dim(inds)[1], 0, 1) > rnorm(dim(inds)[1], mort.prob.mu, mort.prob.sd)      ## create T/F vector for imposing mortality
-  inds <- inds[which(inds$Mort.Prob == F), ]                                         ## keep only individuals that pass the random mortality catch
+  inds <- inds[which(inds$Age <= max.age), ]                                                        ## keep only individuals less than the hard upper age cut off
+  inds$Mort.Prob <- runif(dim(inds)[1], 0, 1) > rnorm(dim(inds)[1], mort.prob.mu, mort.prob.sd)     ## create T/F vector for imposing mortality
+  inds <- inds[which(inds$Mort.Prob == F), ]                                                        ## keep only individuals that pass the random mortality catch
   
   ## Impose TEMPORARY terrestrial carrying capacity
-  if(temp.terrestrial.K < dim(inds)[1]) {
+  if(temp.terrestrial.K < dim(inds)[1]) {                                                   ## impose terrestrial carrying capacity
     inds <- inds[-sample(x = 1:dim(inds)[1], replace=F,
                          size = (dim(inds)[1]) - temp.terrestrial.K), ]
   }
@@ -405,28 +368,29 @@ for(g in 1:n.gens){
     
   ## Update count of individuals per pond
   # find.ponds <- p.test$Pond.ID %in% as.numeric(as.character(unique(as.data.frame(table(inds$Breed.Pond))$Var1)))
-  ponds[ponds$Pond.ID %in% as.numeric(as.character(unique(as.data.frame(table(inds$Breed.Pond))$Var1))), "N.inds"] <- as.data.frame(table(inds$Breed.Pond))$Freq
-  ponds[!ponds$Pond.ID %in% as.numeric(as.character(unique(as.data.frame(table(inds$Breed.Pond))$Var1))), "N.inds"] <- 0
-  print(ponds) 
+  ponds[ponds$Pond.ID %in% as.numeric(as.character(unique(as.data.frame(table(inds$Breed.Pond))$Var1))), "N.inds"] <- as.data.frame(table(inds$Breed.Pond))$Freq      ## calculate data for occupied ponds
+  ponds[!ponds$Pond.ID %in% as.numeric(as.character(unique(as.data.frame(table(inds$Breed.Pond))$Var1))), "N.inds"] <- 0                                              ## set unoccupied pond counts to zero 
+  print(ponds)             ## print pond counts
 
+  put(inds)                ## save "inds" data frame for each generation to "magicalized" output
 
   # print(lines(x=density(inds$Age)$x, 
   #            y=density(inds$Age)$y * length(inds$Age), type="l"))
-  print(paste0("Generation = ", g, " --- Total # Inds = ", dim(inds)[1], "; Terrestrial K = ", temp.terrestrial.K))
-  print(round(Sys.time() - start.time, 2))
-} ## end generations loop
+  print(paste0("Generation = ", g, " --- Total # Inds = ", dim(inds)[1], "; Terrestrial K = ", temp.terrestrial.K))    ## report progress and pop sizes
+  print(round(Sys.time() - start.time, 2))                                                                             ## report time progress
+} ## end generations loop 
 print(round(Sys.time() - start.time, 2))         ## end timer
 
-  
+gen.magic <- magic_result()                        ## stores all the individual data in a pseudo array, can access by calling gen.magic[[generation number]]
 ## --------------------
   
 
 ## Save Genetic Data:
 ## ------------------
   ## Manipulate data? Export Genepop from gstudio?
-    g.df <- inds
-    g.df$Ind.ID <- paste0("N", g.df$Nat.Pond, "B", g.df$Breed.Pond, "-", g.df$Sex, "-", rownames(g.df))   
-    g.df <- gen.df[,c("Ind.ID", "Breed.Pond", 
+    g.magic <- gen.magic$inds[[100]]                    ## extract generation number from uber array
+    g.magic$Ind.ID <- paste0("N", g.magic$Nat.Pond, "-B", g.magic$Breed.Pond, "-", g.magic$Sex, "-", rownames(g.magic))        ## create an individual ID metric
+    g.df <- g.magic[ , c("Ind.ID", "Breed.Pond", 
                       "LocA", "LocB", "LocC", "LocD", "LocE", "LocF", "LocG", "LocH", "LocI", "LocJ", "LocK", 
                       "LocL", "LocM", "LocN", "LocO", "LocP", "LocQ", "LocR", "LocS", "LocT", "LocU")]
 
@@ -470,7 +434,7 @@ print(round(Sys.time() - start.time, 2))         ## end timer
                                 "LocL", "LocM", "LocN", "LocO", "LocP", "LocQ", "LocR", "LocS", "LocT", "LocU")]
     
       gen.data2 <- df2genind(X = gen.data, sep=":", ploidy=2, pop=gen.data$pop, ind.names=gen.data$ind)
-      g.out <- popgenreport(gen.data2, mk.counts = T, mk.fst = T, mk.allele.dist = T, mk.pdf = F)
+      g.out <- popgenreport(gen.data, mk.counts = T, mk.fst = T, mk.allele.dist = T, mk.pdf = F)
       #write.csv()  
 ## ------------------
     
