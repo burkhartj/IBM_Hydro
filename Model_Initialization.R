@@ -24,13 +24,14 @@
   if(!require(rgdal)) install.packages('rgdal', dependencies=T); library('rgdal')
   if(!require(reshape2)) install.packages('reshape2'); library("reshape2")
   if(!require(truncdist)) install.packages('truncdist'); library('truncdist')
+  if(!require(plyr)) install.packages('plyr'); library("plyr")
 
 ## --------------
 
 
 ## Set Directories:
 ## ----------------
-  setwd("C:/Users/Jacob/Git_Repository/IBM_Hydro/")
+  setwd("C:/Users/jjbxb3/Git_Repository/IBM_Hydro/")
   input.dir <- paste0(getwd(), "/Data/")
   output.dir <- paste0(getwd(), "/Output/")
   plot.dir <- paste0(output.dir, "Plots/")
@@ -54,7 +55,7 @@
   landscape.x.coor.max <- 3000
   landscape.y.coor.min <- 0
   landscape.y.coor.max <- 3000
-  n.patch <- ls[[1]]@ncols * ls[[1]]@nrows      ## Used to calculate landscape carrying capacity later 
+  # n.patch <- ls[[1]]@ncols * ls[[1]]@nrows      ## Used to calculate landscape carrying capacity later 
   terrestrial.k <- 180                 ## Terrestrial carrying capacity
   patch.K.mult <- 180             ## Carrying capacity multiplier for each 30x30 m grid cell
   
@@ -105,7 +106,7 @@
   
   ## Breeding:
   ##-------------
-  
+  n.inds <- 100              ## number of individuals to initialize model with
   n.gens <- 100              ## number of generations to iterate over 
   ##--------------
   
