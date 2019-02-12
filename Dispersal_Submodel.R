@@ -1,6 +1,6 @@
 ##################
 # To do:
-# Test sensing neighborhood of cells code block
+# Figure out what's happening with success count
 ################################################
 
 ########################
@@ -21,15 +21,37 @@ if(!require(truncdist)) install.packages('truncdist'); library('truncdist')
 landscape.x.rows <- 100
 landscape.y.columns <- 100
 landscape.x.coor.min <- 0
-landscape.x.coor.max <- 1000
+landscape.x.coor.max <- 3000
 landscape.y.coor.min <- 0
-landscape.y.coor.max <- 1000
+landscape.y.coor.max <- 3000
 
-#Pond number
-pond.num <- 1
+#Ponds
+pond.num <- 1                        ## number of ponds to create
+pond.size.mean <- 1                  ## mean size of pond (in 30x30 m grid cells)
+pond.size.sd <- 0                    ## st devation of pond
+pond.hydro.class <- 1                ## number of pond classes (used for hydroperiod later?)
+max.disp.dist <- 5000                ## maximum dispersal distance (in meters) for creating a buffer 
+                                     ## (quick and dirty fix for world wrapping)
 
 #Terrestrial carrying capacity
 terrestrial.k <- 180    #Assuming 180 salamanders per 30 x 30 m cell
+
+#Dispersal
+
+#Neighborhood that can sense
+sensing.matrix <- matrix(c(NA,1, 1, 1,NA,  ## Can sense 2 rings of cells around current location (opts)
+                           1, 1, 1, 1, 1,
+                           1, 1, 0, 1, 1, 
+                           1, 1, 1, 1, 1,
+                           NA,1, 1, 1,NA),
+                         ncol=5, byrow=TRUE)
+
+#Number of animals per trial
+n.ind <- 100
+
+#Step length
+new.move <- 30
+
 
 ##########################
 # Build initial landscape
@@ -45,17 +67,26 @@ r <- raster(matrix(0, landscape.x.rows, landscape.y.columns),
 #Make layer with ponds
 pond.r <- makeClass(r,                      #Raster name
                     pond.num,               #Number of ponds
-                    1,                      #Pond size
-                    val = 1)                #Pond class
+                    rnorm(pond.num, pond.size.mean, pond.size.sd),      #Pond size
+                    val = pond.hydro.class)       #Pond class
+
+## Make border landscape to contain all dispersers within max dispersal distance of max pond raster extent
+br <- raster(matrix(0, (dim(pond.r)[1]+ceiling(max.disp.dist*2/30)), (dim(pond.r)[2]+ceiling(max.disp.dist*2/30))), 
+             xmn = extent(pond.r)@xmin - (ceiling(max.disp.dist/30) * 30),
+             xmx = extent(pond.r)@xmax + (ceiling(max.disp.dist/30) * 30), 
+             ymn = extent(pond.r)@ymin - (ceiling(max.disp.dist/30) * 30), 
+             ymx = extent(pond.r)@ymax + (ceiling(max.disp.dist/30) * 30))   #Set raster min and max y and x coords
+
+pond.r <- mosaic(br, pond.r, fun=sum)     ## make pond raster with the terrestrial border
 
 #Make terrestrial carrying capacity layer
-terrestrial.k.r <- ((r + 1) - pond.r) ^2
+terrestrial.k.r <- ((br + 1) - pond.r) ^2
 
 #Empty layer to assign residents to 
-terrestrial.resident.r <- r
+terrestrial.resident.r <- br
 
 ## Create an empty distance layer
-dist.r <- r
+dist.r <- br
 
 #Stack layers into single object
 ls <- stack(pond.r, terrestrial.k.r, terrestrial.resident.r, dist.r)  #Form stack of raster layers
@@ -63,16 +94,6 @@ ls <- stack(pond.r, terrestrial.k.r, terrestrial.resident.r, dist.r)  #Form stac
 ##########################
 # Dispersal submodel
 ##########################
-
-## Parameters to Change
-sensing.matrix <- matrix(c(NA,1, 1, 1,NA,  ## Can sense 2 rings of cells around current location (opts)
-                           1, 1, 1, 1, 1,
-                           1, 1, 0, 1, 1, 
-                           1, 1, 1, 1, 1,
-                           NA,1, 1, 1,NA),
-                         ncol=5, byrow=TRUE)
-n.ind <- 100             ## number of animals to test per trial
-new.move <- 30            ## move 30 m in each step
 
 #Parameters to save from model runs
 run.steps <- NULL              ## create empty vector for storing the number of movment steps
@@ -105,43 +126,49 @@ repeat{                ## Loop over all dispersing animals
     dist.traveled <- sqrt(((new.x-rasterToPoints(ls[[1]], function(v){v == 1})[,1])^2) +  ## calculate distance from new position to pond
                             ((new.y-rasterToPoints(ls[[1]], function(v){v == 1})[,2])^2))
     
-    #If move off of landscape, die and move on to next individual
-    if (new.x > 1000 | new.y > 1000) {
-      fell.off.disp <- fell.off.disp + 1
-      break}
+    # #If move off of landscape, die and move on to next individual
+    # if (new.x > 1000 | new.y > 1000) {
+    #   fell.off.disp <- 1
+    #   break}
     
     #If move max distance, die and move on to next individual
     if (dist.traveled >= dist.max) {
-      die.disp <- die.disp + 1
+      die.disp <- 1
       break}
     
     #If find available home (Terrestrial.Resident < Terrestrial.k), stop and move on to next individual
     if (extract( ls[[1]], cbind(new.x,new.y)) == 0 &       #If not on pond cell
         extract( ls[[3]], cbind(new.x,new.y)) < extract( ls[[2]], cbind(new.x,new.y))){ #And k is  greater than number of patch occupants
-      success.disp <- success.disp + 1
+      success.disp <- 1
       disp.cell <- cellFromXY(ls, cbind(new.x,new.y))
       terrestrial.resident.r <- raster(ls, layer = 3)
       terrestrial.resident.r[disp.cell] <- terrestrial.resident.r[disp.cell]+1
       ls <- stack(pond.r, terrestrial.k.r, terrestrial.resident.r, dist.r)
       break}
     
-    #Check neighborhood for available home (Terrestrial.Resident < Terrestrial.k), stop and move on to next individual
-    adj.cells <- adjacent(x = terrestrial.resident.r,
-                          cells = cellFromXY(terrestrial.resident.r, cbind(new.x,new.y)),
-                          directions = sensing.matrix, pairs = FALSE, sorted=TRUE)
-    available <- extract(x = terrestrial.k.r, y = adj.cells) - extract(x = terrestrial.resident.r, y = adj.cells)
-    
-    #Assign salamander to first available
-    for(i in 1:length(available)) {
-      if(available[i] > 0){
-        success.disp <- success.disp + 1
-        disp.cell <- adj.cells[i]
-        terrestrial.resident.r <- raster(ls, layer = 3)
-        terrestrial.resident.r[disp.cell] <- terrestrial.resident.r[disp.cell]+1
-        ls <- stack(pond.r, terrestrial.k.r, terrestrial.resident.r, dist.r)
-        break
-      }
-    }
+#Check neighborhood for available home (Terrestrial.Resident < Terrestrial.k), stop and move on to next individual
+adj.cells <- adjacent(x = terrestrial.resident.r,
+                      cells = cellFromXY(terrestrial.resident.r, cbind(new.x,new.y)),
+                      directions = sensing.matrix, pairs = FALSE, sorted=TRUE)
+available <- extract(x = terrestrial.k.r, y = adj.cells) - extract(x = terrestrial.resident.r, y = adj.cells)
+
+#Assign salamander to first available
+i <- 0
+repeat{
+  i <- i + 1
+  if(i > length(available)){
+    break
+  }
+
+  if(available[i] > 0){
+    success.disp <- 1
+    disp.cell <- adj.cells[i]
+    terrestrial.resident.r <- raster(ls, layer = 3)
+    terrestrial.resident.r[disp.cell] <- terrestrial.resident.r[disp.cell]+1
+    ls <- stack(pond.r, terrestrial.k.r, terrestrial.resident.r, dist.r)
+    break
+  }
+   }
     
     
     dist.traveled <- dist.traveled + new.move    ## calculate the total distance traveled for the animal
@@ -161,3 +188,5 @@ count(die)
 count(success)
 count(fell.off)
 count(max.dispersal.dist - total.dist > 0)
+
+plot(terrestrial.resident.r)
