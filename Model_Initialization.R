@@ -65,7 +65,7 @@
   ## Pond info:
   ##-------------
 
-  n.ponds <- 1                        ## number of ponds to create
+  n.ponds <- 2                        ## number of ponds to create
   pond.size.mean <- 1                  ## mean size of pond (in 30x30 m grid cells)
   pond.size.sd <- 0                    ## st devation of pond
   pond.hydro.class <- 1                ## number of pond classes (used for hydroperiod later?)
