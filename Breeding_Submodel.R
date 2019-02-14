@@ -207,6 +207,7 @@ source("C:/Users/jjbxb3/Git_Repository/IBM_Hydro/Landscape_Submodel.R")
           }
             else { 
               # print(i, " - passed")
+              terrestrial.resident.r[cellFromXY(ls, cbind(inds$Patch.X[i],inds$Patch.Y[i]))] <- terrestrial.resident.r[cellFromXY(ls, cbind(inds$Patch.X[i], inds$Patch.Y[i]))]+1
               break
             }      ## end else statement
         }      ## end repeat loop
@@ -219,7 +220,7 @@ source("C:/Users/jjbxb3/Git_Repository/IBM_Hydro/Landscape_Submodel.R")
 ## -------------------
 inds0 <- inds    
 
-magic_for(silent=T)
+# magic_for(silent=T)
 
 start.time <- Sys.time()       
 for(g in 1:n.gens){    
@@ -315,7 +316,7 @@ for(g in 1:n.gens){
       
       ## Update output data set... might be able to pull straight into the 'inds' data frame... 
       off.df <- rbind(off.df, off.pond)             ## save pond data to a temporary generation offspring data frame 
-      
+      print(paste0("number of offspring = ", dim(off.df)[1]))
     } ## end IF statement
   
   } ## end POND iterations
@@ -323,102 +324,107 @@ for(g in 1:n.gens){
   ##########################
   # Dispersal submodel
   ##########################
-  # if(dim(off.df)[1] > 0) {
-  #   #Parameters to save from model runs
-  #   run.steps <- 0                   ## create empty vector for storing the number of movment steps
-  #   
-  #   total.dist <- NULL               ## stores the total distance traveled for each animal
-  #   ind.moves <- NULL                ## stores the total number of moves for each animal     
-  #   die <- NULL
-  #   success <- NULL
-  #   new.move <- 30              ## DELETE LATER. Step length in the model init file
-  #   
-  #   ## Simulation Code
-  #   repeat{                ## Loop over all dispersing animals
-  #     run.steps <- run.steps + 1
-  #     new.x <- ponds[ponds$Pond.ID %in% off.df$Nat.Pond[run.steps], "Pond.X"] #Extract individuals pond x coord
-  #     new.y <- ponds[ponds$Pond.ID %in% off.df$Nat.Pond[run.steps], "Pond.Y"] #Extract individuals pond y coord
-  #     x <- NULL                    ## create empty vector for storing x-coordinates
-  #     y <- NULL                    ## create empty vector for storing y-coordinates 
-  #     dist <- NULL                 ## create empty vector for storing distances from home
-  #     die.disp <- 0
-  #     success.disp <- 0
-  #     disp.to.adj <- 0
-  #     # new.ang <- sample(1:360, replace = TRUE, size = 1)     ## randomly select an initial angle
-  #     # dist.max <- rtrunc(n = 1, spec = "llogis", a = 30, b = 2000, shape = 1.5, scale = 30) #Max dispersal distance ----- Changed to call from inds file
-  #     ang <- NULL                  ## create empty vector for storing movement angles? 
-  #     dist.traveled <- 0             ## create object for storing the individual animal movement information
-  #     
-  #     repeat{              ## Loop over number of movment steps (run.steps) for each animal 
-  #       new.ang <- rnorm(n = 1, mean = off.df$Init.Angle[run.steps], sd = 10)     ## randomly select an angle
-  #       new.x <- new.x + new.move*sin(new.ang*(pi/180))      ## calculate new x-coordinate using radians 
-  #       new.y <- new.y + new.move*cos(new.ang*(pi/180))      ## calculate new y-coordinate using radians
-  #       dist.traveled <- sqrt(((new.x-ponds[ponds$Pond.ID %in% off.df$Nat.Pond[run.steps], "Pond.X"])^2) +  ## calculate distance from new position to pond
-  #                             ((new.y-ponds[ponds$Pond.ID %in% off.df$Nat.Pond[run.steps], "Pond.Y"])^2))
-  #       
-  #       #If move max distance, die and move on to next individual
-  #       if (dist.traveled >= off.df$dist.max[run.steps]) {
-  #         die.disp <- 1
-  #         break}
-  #       
-  #       #If find available home (Terrestrial.Resident < Terrestrial.k), stop and move on to next individual
-  #       if (extract( ls[[1]], cbind(new.x,new.y)) == 0 &       #If not on pond cell
-  #           extract( ls[[3]], cbind(new.x,new.y)) < extract( ls[[2]], cbind(new.x,new.y))){ #And k is greater than number of patch occupants
-  #           success.disp <- 1
-  #           # disp.cell <- cellFromXY(ls, cbind(new.x,new.y))
-  #           off.df$Patch.X[run.steps] <- new.x
-  #           off.df$Patch.Y[run.steps] <- new.y
-  #           terrestrial.resident.r <- raster(ls, layer = 3)
-  #           terrestrial.resident.r[cellFromXY(ls, cbind(new.x,new.y))] <- terrestrial.resident.r[cellFromXY(ls, cbind(new.x,new.y))]+1
-  #           ls <- stack(pond.r, terrestrial.k.r, terrestrial.resident.r, dist.r)
-  #         break}
-  #       
-  #       #Check neighborhood for available home (Terrestrial.Resident < Terrestrial.k), stop and move on to next individual
-  #       adj.cells <- adjacent(x = terrestrial.resident.r,
-  #                             cells = cellFromXY(terrestrial.resident.r, cbind(new.x,new.y)),
-  #                             directions = sensing.matrix, pairs = FALSE, sorted=TRUE)
-  #       available <- extract(x = terrestrial.k.r, y = adj.cells) - extract(x = terrestrial.resident.r, y = adj.cells)
-  #       
-  #       #Assign salamander to first available
-  #       i <- 0
-  #       repeat{
-  #         i <- i + 1
-  #         if(i > length(available)){
-  #           break}
-  #         
-  #         if(available[i] > 0){
-  #           disp.to.adj <- 1
-  #           # disp.cell <- adj.cells[i]
-  #           terrestrial.resident.r <- raster(ls, layer = 3)
-  #           off.df$Patch.X[run.steps] <- xFromCell(terrestrial.resident.r, adj.cells[i])
-  #           off.df$Patch.Y[run.steps] <- yFromCell(terrestrial.resident.r, adj.cells[i])
-  #           terrestrial.resident.r[adj.cells[i]] <- terrestrial.resident.r[adj.cells[i]]+1
-  #           ls <- stack(pond.r, terrestrial.k.r, terrestrial.resident.r, dist.r)              ## double check if we need to keep re-making these
-  #           break}
-  #       }
-  #       
-  #       if(disp.to.adj == 1){
-  #         success.disp <- 1
-  #         break}
-  #       
-  #       dist.traveled <- dist.traveled + new.move    ## calculate the total distance traveled for the animal
-  #     }
-  #     
-  #     total.dist <- c(total.dist, dist.traveled)                      ## store total distance traveled for each animal
-  #     die <- c(die, die.disp)
-  #     success <- c(success, success.disp)
-  #     
-  #     if (run.steps == dim(off.df)[1]) {break} ##n.ind) {break}              ## exit repeat loop when number of run steps is 20?? AKA more than 20 trials were run??
-  #   }
-  #   
-  #   print(plyr::count(die))
-  #   print(plyr::count(success))
-  #   print(plot(terrestrial.resident.r))
-  #   
-  # }  ## end off spring catch
-  # 
-  # 
-  # ## Join new and old data frames 
+  if(dim(off.df)[1] > 0) {
+    #Parameters to save from model runs
+    run.steps <- 0                   ## create empty vector for storing the number of movment steps
+
+    total.dist <- NULL               ## stores the total distance traveled for each animal
+    ind.moves <- NULL                ## stores the total number of moves for each animal
+    die <- NULL
+    success <- NULL
+    new.move <- 30              ## DELETE LATER. Step length in the model init file
+
+    ## Simulation Code
+    repeat{                ## Loop over all dispersing animals
+      run.steps <- run.steps + 1
+      new.x <- ponds[ponds$Pond.ID %in% off.df$Nat.Pond[run.steps], "Pond.X"] #Extract individuals pond x coord
+      new.y <- ponds[ponds$Pond.ID %in% off.df$Nat.Pond[run.steps], "Pond.Y"] #Extract individuals pond y coord
+      x <- NULL                    ## create empty vector for storing x-coordinates
+      y <- NULL                    ## create empty vector for storing y-coordinates
+      dist <- NULL                 ## create empty vector for storing distances from home
+      die.disp <- 0
+      success.disp <- 0
+      disp.to.adj <- 0
+      # new.ang <- sample(1:360, replace = TRUE, size = 1)     ## randomly select an initial angle
+      # dist.max <- rtrunc(n = 1, spec = "llogis", a = 30, b = 2000, shape = 1.5, scale = 30) #Max dispersal distance ----- Changed to call from inds file
+      ang <- NULL                  ## create empty vector for storing movement angles?
+      dist.traveled <- 0             ## create object for storing the individual animal movement information
+
+      repeat{              ## Loop over number of movment steps (run.steps) for each animal
+        new.ang <- rnorm(n = 1, mean = off.df$Init.Angle[run.steps], sd = 10)     ## randomly select an angle
+        new.x <- new.x + new.move*sin(new.ang*(pi/180))      ## calculate new x-coordinate using radians
+        new.y <- new.y + new.move*cos(new.ang*(pi/180))      ## calculate new y-coordinate using radians
+        dist.traveled <- sqrt(((new.x-ponds[ponds$Pond.ID %in% off.df$Nat.Pond[run.steps], "Pond.X"])^2) +  ## calculate distance from new position to pond
+                              ((new.y-ponds[ponds$Pond.ID %in% off.df$Nat.Pond[run.steps], "Pond.Y"])^2))
+
+        #If move max distance, die and move on to next individual
+        if (dist.traveled >= off.df$dist.max[run.steps]) {
+          die.disp <- 1
+          break}
+
+        #If find available home (Terrestrial.Resident < Terrestrial.k), stop and move on to next individual
+        if (extract( ls[[1]], cbind(new.x,new.y)) == 0 &       #If not on pond cell
+            extract( ls[[3]], cbind(new.x,new.y)) < extract( ls[[2]], cbind(new.x,new.y))){ #And k is greater than number of patch occupants
+            success.disp <- 1
+            # disp.cell <- cellFromXY(ls, cbind(new.x,new.y))
+            off.df$Patch.X[run.steps] <- new.x
+            off.df$Patch.Y[run.steps] <- new.y
+            terrestrial.resident.r <- raster(ls, layer = 3)
+            terrestrial.resident.r[cellFromXY(ls, cbind(new.x,new.y))] <- terrestrial.resident.r[cellFromXY(ls, cbind(new.x,new.y))]+1
+            ls <- stack(pond.r, terrestrial.k.r, terrestrial.resident.r, dist.r)
+          break}
+
+        #Check neighborhood for available home (Terrestrial.Resident < Terrestrial.k), stop and move on to next individual
+        adj.cells <- adjacent(x = terrestrial.resident.r,
+                              cells = cellFromXY(terrestrial.resident.r, cbind(new.x,new.y)),
+                              directions = sensing.matrix, pairs = FALSE, sorted=TRUE)
+        available <- extract(x = terrestrial.k.r, y = adj.cells) - extract(x = terrestrial.resident.r, y = adj.cells)
+
+        #Assign salamander to first available
+        i <- 0
+        repeat{
+          i <- i + 1
+          if(i > length(available)){
+            break}
+
+          if(available[i] > 0){
+            disp.to.adj <- 1
+            # disp.cell <- adj.cells[i]
+            terrestrial.resident.r <- raster(ls, layer = 3)
+            off.df$Patch.X[run.steps] <- xFromCell(terrestrial.resident.r, adj.cells[i])
+            off.df$Patch.Y[run.steps] <- yFromCell(terrestrial.resident.r, adj.cells[i])
+            terrestrial.resident.r[adj.cells[i]] <- terrestrial.resident.r[adj.cells[i]]+1
+            ls <- stack(pond.r, terrestrial.k.r, terrestrial.resident.r, dist.r)              ## double check if we need to keep re-making these
+            break}
+        }
+
+        if(disp.to.adj == 1){
+          success.disp <- 1
+          break}
+
+        dist.traveled <- dist.traveled + new.move    ## calculate the total distance traveled for the animal
+      }
+      
+      d <- pointDistance(p1 =cbind(ponds$Pond.X, ponds$Pond.Y),
+                         p2 = cbind(off.df[run.steps,'Patch.X'], off.df[run.steps, 'Patch.Y']),
+                         lonlat = FALSE)
+      off.df$Breed.Pond[run.steps] <- ponds$Pond.ID[which.min(d)]
+      
+      total.dist <- c(total.dist, dist.traveled)                      ## store total distance traveled for each animal
+      die <- c(die, die.disp)
+      success <- c(success, success.disp)
+
+      if (run.steps == dim(off.df)[1]) {break} ##n.ind) {break}              ## exit repeat loop when number of run steps is 20?? AKA more than 20 trials were run??
+    }
+
+    print(plyr::count(die))
+    print(plyr::count(success))
+    # print(plot(terrestrial.resident.r))
+
+  }  ## end off spring catch
+
+
+  ## Join new and old data frames
   inds <- rbind(inds, off.df)                 ## join surviving offspring data into the full data set
   
   print(table(inds$Breed.Pond))               ## report the number of individuals that bred
@@ -449,24 +455,18 @@ for(g in 1:n.gens){
   inds$Mort.Prob <- runif(dim(inds)[1], 0, 1) > rnorm(dim(inds)[1], mort.prob.mu, mort.prob.sd)     ## create T/F vector for imposing mortality
   inds <- inds[which(inds$Mort.Prob == F), ]                                                        ## keep only individuals that pass the random mortality catch
   
-  ## Impose TEMPORARY terrestrial carrying capacity
-  if(temp.terrestrial.K < dim(inds)[1]) {                                                   ## impose terrestrial carrying capacity
-    inds <- inds[-sample(x = 1:dim(inds)[1], replace=F,
-                         size = (dim(inds)[1]) - temp.terrestrial.K), ]
-  }
+  ## Update terrestrial resident layers
+  count.cell <- count(cellFromXY(terrestrial.resident.r, cbind(inds$Patch.X, inds$Patch.Y)))
+  terrestrial.resident.r[count.cell$x] <- count.cell$freq
    
-  ## MAKE SURE TO UPDATE TERRESTRIAL RESIDENT LAYERS:
-  ##----------------------------------------------------------
-    ##DO SHIT HERE
-  ##----------------------------------------------------------
-    
+  
   ## Update count of individuals per pond
   # find.ponds <- p.test$Pond.ID %in% as.numeric(as.character(unique(as.data.frame(table(inds$Breed.Pond))$Var1)))
   ponds[ponds$Pond.ID %in% as.numeric(as.character(unique(as.data.frame(table(inds$Breed.Pond))$Var1))), "N.inds"] <- as.data.frame(table(inds$Breed.Pond))$Freq      ## calculate data for occupied ponds
   ponds[!ponds$Pond.ID %in% as.numeric(as.character(unique(as.data.frame(table(inds$Breed.Pond))$Var1))), "N.inds"] <- 0                                              ## set unoccupied pond counts to zero 
   print(ponds)             ## print pond counts
 
-  put(inds)                ## save "inds" data frame for each generation to "magicalized" output
+  # put(inds)                ## save "inds" data frame for each generation to "magicalized" output
 
   # print(lines(x=density(inds$Age)$x, 
   #            y=density(inds$Age)$y * length(inds$Age), type="l"))
@@ -475,7 +475,7 @@ for(g in 1:n.gens){
 } ## end generations loop 
 print(round(Sys.time() - start.time, 2))         ## end timer
 
-gen.magic <- magic_result()                        ## stores all the individual data in a pseudo array, can access by calling gen.magic[[generation number]]
+# gen.magic <- magic_result()                        ## stores all the individual data in a pseudo array, can access by calling gen.magic[[generation number]]
 ## --------------------
   
 
