@@ -6,14 +6,13 @@
 
 ## Load Packages:
 ## --------------
-  if(!require(actuar)) install.packages('actuar'); library('actuar')
-  if(!require(adegenet)) install.packages('adegenet'); library("adegenet")
-  if(!require(pegas)) install.packages('pegas'); library("pegas")
-  if(!require(hierfstat)) install.packages('hierfstat'); library("hierfstat")
-  if(!require(mmod)) install.packages('mmod'); library("mmod")
-  if(!require(reshape2)) install.packages('reshape2'); library("reshape2")
-  if(!require(ggplot2)) install.packages('ggplot2'); library("ggplot2")
-  if(!require(magicfor)) devtools::install_github("hoxo-m/magicfor"); library("magicfor")
+  # if(!require(actuar)) install.packages('actuar'); library('actuar')
+  # if(!require(adegenet)) install.packages('adegenet'); library("adegenet")
+  # if(!require(pegas)) install.packages('pegas'); library("pegas")
+  # if(!require(hierfstat)) install.packages('hierfstat'); library("hierfstat")
+  # if(!require(mmod)) install.packages('mmod'); library("mmod")
+  # if(!require(reshape2)) install.packages('reshape2'); library("reshape2")
+  # if(!require(ggplot2)) install.packages('ggplot2'); library("ggplot2")
 ## --------------
 
 ## Source Landscape code:
@@ -21,71 +20,69 @@
 source("C:/Users/jjbxb3/Git_Repository/IBM_Hydro/Landscape_Submodel.R")
 ## ----------------------
 
-## Import Data Files: 
-## ------------------
-  gen.df <- read.csv("C:/Users/jjbxb3/Box Sync/Mizzou/Research/IBM_Hydro-desktop/Data/WEP_Modularity_DataFile.csv", header=T, stringsAsFactors = F)        ## import genetic data (move to the model_initialization.R script later)
-    gen.df <- gen.df[,-((dim(gen.df)[2]-2):dim(gen.df)[2])]                                                   ## trim up the loci that were ommitted
-## ------------------
+# ## Import Data Files: 
+# ## ------------------
+#   gen.df <- read.csv("C:/Users/jjbxb3/Box Sync/Mizzou/Research/IBM_Hydro-desktop/Data/WEP_Modularity_DataFile.csv", header=T, stringsAsFactors = F)        ## import genetic data (move to the model_initialization.R script later)
+#     gen.df <- gen.df[,-((dim(gen.df)[2]-2):dim(gen.df)[2])]                                                   ## trim up the loci that were ommitted
+# ## ------------------
+# 
+# ## Initialize Models:
+# ## ------------------
+#   ## Input Parameters to automate changes:
+#     n.inds <- 100               ## number of individuals to create across all ponds
+#     n.ponds <- 5               ## number of initial ponds to create
+#      
+#     n.gens <- 100              ## number of generations to iterate over 
+#     
+#     pond.K.mult <- 2.25             ## Carrying capacity multiplier. Based off a Semlitsch paper 
+#     patch.K.mult <- 180             ## Carrying capacity multiplier for each 30x30 m grid cell
+#     
+#     min.SVL.F <- 48            ## minimum SVL for sexual maturity - females ---- ARBITRARY RIGHT NOW 
+#     min.SVL.M <- 45            ## minimum SVL for sexual maturity - males ---- ARBITRARY RIGHT NOW 
+#     SVL.0.mu <- 26.00          ## SVL params based on Taylor and Scott equations, MU's are data driven, SD's ARE ARBITRARY (sizes are for AMOP, maybe use Winters thesis [skeletal chronology] for AMAN size classes?), 
+#     SVL.0.sd <- 1.5
+#     SVL.1.mu <- 39.61
+#     SVL.1.sd <- 0.5
+#     SVL.2.mu <- 44.47
+#     SVL.2.sd <- 0.25
+#     SVL.3.mu <- 48.47 
+#     SVL.3.sd <- 0.10
+#     SVL.4p.mu <- 48.97
+#     SVL.4p.sd <- 0.01
+# 
+#     min.age.F <- 2                   ## minimum age for reproduction - females
+#     min.age.M <- 1                   ## minumum age for reproduction - males
+#     max.age <- 15                    ## maximum age for all adults (based on winters thesis)
+#     
+#     max.disp.dist <- 5000            ## maximum possible dispersal distance (used for landscape border buffer)
+#     philo.rate <- 0.90               ## rate of philopatry
+#     disp.shape <- 1.5                ## shape param for rllogis dispersal dist draws
+#     disp.scale <- 30                 ## scale param for rllogis dispersal dist draws
+#     disp.beta1 <- 0.45               ## shape1 for rbeta dispersal dist
+#     disp.beta2 <- 1.00               ## shape2 for rbeta dispersal dist
+#     mort.prob.mu <- 0.69             ## probability of ADULT mortality - MU for rnorm draw
+#     mort.prob.sd <- 0.10             ## probability of ADULT mortality - SD for rnorm draw
+#     
+#     min.hydro <- 1                   ## minimum hydroperiod class; if < this threshold, no reproduction in pond
+#     n.hydro.class <- 3               ## number of hydroperiod classes (used in random draws currently, will be used for deriving parameters later rather than hard coding like below)
+#     hydro.0.mu <- 42.8
+#     hydro.0.sd <- 5
+#     hydro.1.mu <- 76.5
+#     hydro.1.sd <- 10
+#     hydro.2.mu <- 437.5
+#     hydro.2.sd <- 50
+#     hydro.3.mu <- 3003.5
+#     hydro.3.sd <- 100
+#     # hydro.4.mu <- 
+#     # hydro.4.sd <-   
+# 
+# ### --------------------------------
+  ## Calculate number of patches in landscape
+  n.patch <- ls[[1]]@ncols * ls[[1]]@nrows         ## total number of patches    
 
-## Initialize Models:
-## ------------------
-  ## Input Parameters to automate changes:
-    n.inds <- 100               ## number of individuals to create across all ponds
-    n.ponds <- 5               ## number of initial ponds to create
-     
-    n.gens <- 100              ## number of generations to iterate over 
-    
-    pond.K.mult <- 2.25             ## Carrying capacity multiplier. Based off a Semlitsch paper 
-    patch.K.mult <- 180             ## Carrying capacity multiplier for each 30x30 m grid cell
-    
-    min.SVL.F <- 48            ## minimum SVL for sexual maturity - females ---- ARBITRARY RIGHT NOW 
-    min.SVL.M <- 45            ## minimum SVL for sexual maturity - males ---- ARBITRARY RIGHT NOW 
-    SVL.0.mu <- 26.00          ## SVL params based on Taylor and Scott equations, MU's are data driven, SD's ARE ARBITRARY (sizes are for AMOP, maybe use Winters thesis [skeletal chronology] for AMAN size classes?), 
-    SVL.0.sd <- 1.5
-    SVL.1.mu <- 39.61
-    SVL.1.sd <- 0.5
-    SVL.2.mu <- 44.47
-    SVL.2.sd <- 0.25
-    SVL.3.mu <- 48.47 
-    SVL.3.sd <- 0.10
-    SVL.4p.mu <- 48.97
-    SVL.4p.sd <- 0.01
-
-    min.age.F <- 2                   ## minimum age for reproduction - females
-    min.age.M <- 1                   ## minumum age for reproduction - males
-    max.age <- 15                    ## maximum age for all adults (based on winters thesis)
-    
-    max.disp.dist <- 5000            ## maximum possible dispersal distance (used for landscape border buffer)
-    philo.rate <- 0.90               ## rate of philopatry
-    disp.shape <- 1.5                ## shape param for rllogis dispersal dist draws
-    disp.scale <- 30                 ## scale param for rllogis dispersal dist draws
-    disp.beta1 <- 0.45               ## shape1 for rbeta dispersal dist
-    disp.beta2 <- 1.00               ## shape2 for rbeta dispersal dist
-    mort.prob.mu <- 0.69             ## probability of ADULT mortality - MU for rnorm draw
-    mort.prob.sd <- 0.10             ## probability of ADULT mortality - SD for rnorm draw
-    
-    min.hydro <- 1                   ## minimum hydroperiod class; if < this threshold, no reproduction in pond
-    n.hydro.class <- 3               ## number of hydroperiod classes (used in random draws currently, will be used for deriving parameters later rather than hard coding like below)
-    hydro.0.mu <- 42.8
-    hydro.0.sd <- 5
-    hydro.1.mu <- 76.5
-    hydro.1.sd <- 10
-    hydro.2.mu <- 437.5
-    hydro.2.sd <- 50
-    hydro.3.mu <- 3003.5
-    hydro.3.sd <- 100
-    # hydro.4.mu <- 
-    # hydro.4.sd <-   
-
-### --------------------------------
-    
-    n.patch <- ls[[1]]@ncols * ls[[1]]@nrows      ## total number of patches    
-    temp.terrestrial.K <- n.patch * patch.K.mult           ## DELETE LATER. WILL BE IRRELEVANT ONCE THE SPATIAL STUFF IS INCORPORATED
-    
-    
   ## Initialize Pond Data Frame:
   ponds <- data.frame(Pond.ID = seq(1:n.ponds),
-                      Pond.X = numeric(n.ponds), 
+                      Pond.X = numeric(n.ponds),                           
                       Pond.Y = numeric(n.ponds),
                       Hydroperiod = sample(0:n.hydro.class, n.ponds, T), 
                       Pond.Area = numeric(n.ponds), 
@@ -94,6 +91,7 @@ source("C:/Users/jjbxb3/Git_Repository/IBM_Hydro/Landscape_Submodel.R")
                       Mort.Pond = numeric(n.ponds)
                       )
   
+  ## Calculate Pond area based on Hydroperiod classes based upon the Semlitsch diversity/disturbance paper
   for(i in 1:dim(ponds)[1]){
     ponds$Pond.Area[i] <- ifelse(ponds$Hydroperiod[i] == 0, yes=round(rnorm(1, hydro.0.mu, hydro.0.sd), 3), 
                                  no=ifelse(ponds$Hydroperiod[i] == 1, yes=round(rnorm(1, hydro.1.mu, hydro.1.sd), 3),
@@ -102,28 +100,29 @@ source("C:/Users/jjbxb3/Git_Repository/IBM_Hydro/Landscape_Submodel.R")
                                                                no=NA))))
   }
   
-  ponds$Pond.K <- round(pond.K.mult * ponds$Pond.Area)
+  ponds$Pond.K <- round(pond.K.mult * ponds$Pond.Area)                             ## calculate pond K based upon 
   
-  ponds$Pond.X <- as.data.frame(rasterToPoints(pond.r, function(x){x == 1}))$x
-  ponds$Pond.Y <- as.data.frame(rasterToPoints(pond.r, function(x){x == 1}))$y
+  ponds$Pond.X <- as.data.frame(rasterToPoints(pond.r, function(x){x == 1}))$x     ## extract x-coordinates from pond raster
+  ponds$Pond.Y <- as.data.frame(rasterToPoints(pond.r, function(x){x == 1}))$y     ## extract y-coordinates from pond raster
           
-  ## Create Data Frame of Individuals:  inds-own [age, sex, svl, loci, my-land-home (Nat.Patch), my-natal-pond (Nat.Pond),  my-breed-pond (Breed.Pond), can-breed (Rep.Active), years-since-breed (IBI)]
+  
+  ## Create Data Frame of Individual Demographic Information:
   inds <- data.frame(Sex = sample(c("M", "F"), n.inds, replace=T), 
-                     Age = sample(0:round(max.age / 2), n.inds, T), 
-                     SVL = numeric(n.inds), 
-                     Rep.Active = NA, 
-                     IBI = numeric(n.inds), 
+                     Age = sample(0:round(max.age / 2), n.inds, T),      
+                     SVL = numeric(n.inds),   
+                     Rep.Active = NA,                                                 ## counter to assess whether reproductively active
+                     IBI = numeric(n.inds),                                           ## inter-breeding interval 
                      Bred = 0, 
                      Generation = 0, 
-                     Nat.Pond = sample(1:n.ponds, n.inds, T), 
+                     Nat.Pond = sample(1:n.ponds, n.inds, T),                         ## Natal pond
                      Patch.X = numeric(n.inds), 
                      Patch.Y = numeric(n.inds),
-                     Disp.Prob = round(rbeta(n.inds, disp.beta1, disp.beta2), 3), 
-                     Breed.Pond = numeric(n.inds),
-                     Init.Angle = numeric(n.inds), 
-                     dist.max = numeric(n.inds), 
-                     Mort.Prob = numeric(n.inds), 
-                     LocA=numeric(n.inds), LocB=numeric(n.inds), 
+                     Disp.Prob = round(rbeta(n.inds, disp.beta1, disp.beta2), 3),      
+                     Breed.Pond = numeric(n.inds),                                    ## Breeding pond
+                     Init.Angle = numeric(n.inds),                                    ## Angle (in degrees) for which individuals leave pond
+                     dist.max = numeric(n.inds),                                      ## max dispersal distance
+                     Mort.Prob = numeric(n.inds),                                     ## probability of mortality
+                     LocA=numeric(n.inds), LocB=numeric(n.inds),                      ## genetic info, add number loci equal to input data
                      LocC=numeric(n.inds), LocD=numeric(n.inds), 
                      LocE=numeric(n.inds), LocF=numeric(n.inds),
                      LocG=numeric(n.inds), LocH=numeric(n.inds),
@@ -138,10 +137,10 @@ source("C:/Users/jjbxb3/Git_Repository/IBM_Hydro/Landscape_Submodel.R")
   
      inds$Breed.Pond <- ifelse(inds$Disp.Prob > philo.rate, yes=sample(unique(inds$Nat.Pond), 1, T), no=inds$Nat.Pond)
      
-     ponds$N.inds <- as.data.frame(table(inds$Nat.Pond))$Freq
+     ponds$N.inds <- as.data.frame(table(inds$Breed.Pond))$Freq        ## calculate the number of individuals assigned to each pond
      
      
-    ## Add Genetic Data 
+    ## Calculate SVL, Reproductive Activity Status, Genetic Data, and Assign to terrestrial patches 
     for(i in 1:dim(inds)[1]){
       ## Calculate SVL:              ## automate these steps later
       inds$SVL[i] <- ifelse(inds$Age[i] == 0, yes=round(rnorm(1, SVL.0.mu, SVL.0.sd), 2),
@@ -161,8 +160,8 @@ source("C:/Users/jjbxb3/Git_Repository/IBM_Hydro/Landscape_Submodel.R")
                                                            yes = T, 
                                                            no = NA))))
       
-      ## Initialize Genetic Data:
-          ## Try to automate this later. Can loop over columns if you tell where the columns start and where they end...  
+      ## Initialize Genetic Data: 
+      ## Grab two random alleles from each loci per individual per locus
       inds$LocA[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_37, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_37, ":")), 1))
       inds$LocB[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_50, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_50, ":")), 1))
       inds$LocC[i] <- paste0(sample(unlist(strsplit(gen.df$ac300, ":")), 1), ":", sample(unlist(strsplit(gen.df$ac300, ":")), 1))
@@ -186,21 +185,23 @@ source("C:/Users/jjbxb3/Git_Repository/IBM_Hydro/Landscape_Submodel.R")
       inds$LocU[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_314, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_314, ":")), 1))
       
       
-      ## Intialize Dispersal Data: 
-      inds$Init.Angle[i] <- round(runif(1, 1, 360)) 
-      inds$dist.max[i] <- rllogis(1, shape=disp.shape, scale=disp.scale)
-      inds$Patch.X[i] <- ponds[ponds$Pond.ID %in% inds$Nat.Pond[i], "Pond.X"] + inds$dist.max[i] * sin((inds$Init.Angle[i])*(pi/180))
-      inds$Patch.Y[i] <- ponds[ponds$Pond.ID %in% inds$Nat.Pond[i], "Pond.Y"] + inds$dist.max[i] * cos((inds$Init.Angle[i])*(pi/180))
+      ## Assign individuals to a terrestrial patch 
+      inds$Init.Angle[i] <- round(runif(1, 1, 360))                                    ## draw dispersal angle
+      inds$dist.max[i] <- rllogis(1, shape=disp.shape, scale=disp.scale)               ## draw a maximum dispersal distance
+      inds$Patch.X[i] <- ponds[ponds$Pond.ID %in% inds$Nat.Pond[i], "Pond.X"] + inds$dist.max[i] * sin((inds$Init.Angle[i])*(pi/180))   ## move individual from pond in x-coor
+      inds$Patch.Y[i] <- ponds[ponds$Pond.ID %in% inds$Nat.Pond[i], "Pond.Y"] + inds$dist.max[i] * cos((inds$Init.Angle[i])*(pi/180))   ## move individual from pond in y-coor
 
-      
+        ## Check that number of individuals on patch is < K/2; 
+          ## if yes -> assign to terrestrial.resident.r; if no -> loop until find unoccupied patch
         repeat{
-          Patch.K <- extract(ls[[2]], cbind(inds$Patch.X[i], inds$Patch.Y[i]))    ## extract patch 
-          patch.inds <- dim(subset(inds, Patch.X == inds$Patch.X[i] & Patch.Y == inds$Patch.Y[i]))[1]   ## calculate # inds on patch Resident surface and update that. 
+          Patch.K <- extract(ls[[2]], cbind(inds$Patch.X[i], inds$Patch.Y[i]))                          ## extract patch 
+          patch.inds <- terrestrial.resident.r[cellFromXY(ls, cbind(inds$Patch.X[i],inds$Patch.Y[i]))]
+                            #subset(inds, Patch.X == inds$Patch.X[i] & Patch.Y == inds$Patch.Y[i]))[1]   ## calculate # inds on patch Resident surface and update that. 
           
-          print(paste0("Check Terr K for ind #", i, " ----- Patch K = ", Patch.K, " ----- Patch.inds = ", patch.inds))
+          print(paste0("Check Terr K for ind #", i, " ----- Patch K = ", Patch.K, " ----- Patch.inds = ", patch.inds))  ## report progress
           
-          if(patch.inds > floor(Patch.K / 2) | is.na(Patch.K)==T) {
-            inds$Init.Angle[i] <- round(runif(1, 1, 360)) 
+          if(patch.inds > floor(Patch.K / 2) | is.na(Patch.K)==T) {   ## check if patch has less than half carrying capacity, if not -> redraw patch
+            inds$Init.Angle[i] <- round(runif(1, 1, 360))             
             inds$dist.max[i] <- rtrunc(n = 1, spec = "llogis", a = 30, b = 2000, shape = disp.shape, scale = disp.scale)
             inds$Patch.X[i] <- ponds[ponds$Pond.ID %in% inds$Nat.Pond[i], "Pond.X"] + inds$dist.max[i] * sin((inds$Init.Angle[i])*(pi/180))
             inds$Patch.Y[i] <- ponds[ponds$Pond.ID %in% inds$Nat.Pond[i], "Pond.Y"] + inds$dist.max[i] * cos((inds$Init.Angle[i])*(pi/180))
@@ -213,14 +214,19 @@ source("C:/Users/jjbxb3/Git_Repository/IBM_Hydro/Landscape_Submodel.R")
         }      ## end repeat loop
     }      ## end for loop
 
+    plot(terrestrial.resident.r, xlim=c(-90,3000), ylim=c(-90,3000), 
+         breaks=c(0,1,10,25,50,100,180), 
+         col=c("black", "grey", "tan", "yellow", "orange", "red", "purple")) 
+    points(ponds$Pond.X, ponds$Pond.Y, 
+           cex=as.numeric(ponds$Hydroperiod)+1, col="magenta") 
 ## ------------------  
 
      
 ## Breeding Migration:
 ## -------------------
 inds0 <- inds    
+pond.output <- ponds[-c(1:dim(ponds)[1]), ]  
 
-# magic_for(silent=T)
 
 start.time <- Sys.time()       
 for(g in 1:n.gens){    
@@ -316,7 +322,7 @@ for(g in 1:n.gens){
       
       ## Update output data set... might be able to pull straight into the 'inds' data frame... 
       off.df <- rbind(off.df, off.pond)             ## save pond data to a temporary generation offspring data frame 
-      print(paste0("number of offspring = ", dim(off.df)[1]))
+      # print(paste0("number of offspring = ", dim(off.df)[1]))
     } ## end IF statement
   
   } ## end POND iterations
@@ -417,8 +423,8 @@ for(g in 1:n.gens){
       if (run.steps == dim(off.df)[1]) {break} ##n.ind) {break}              ## exit repeat loop when number of run steps is 20?? AKA more than 20 trials were run??
     }
 
-    print(plyr::count(die))
-    print(plyr::count(success))
+    # print(plyr::count(die))
+    # print(plyr::count(success))
     # print(plot(terrestrial.resident.r))
 
   }  ## end off spring catch
@@ -427,7 +433,7 @@ for(g in 1:n.gens){
   ## Join new and old data frames
   inds <- rbind(inds, off.df)                 ## join surviving offspring data into the full data set
   
-  print(table(inds$Breed.Pond))               ## report the number of individuals that bred
+  # print(table(inds$Breed.Pond))               ## report the number of individuals that bred
   
 ## Grow, Mature, Death:
 ## --------------------
@@ -464,14 +470,13 @@ for(g in 1:n.gens){
   # find.ponds <- p.test$Pond.ID %in% as.numeric(as.character(unique(as.data.frame(table(inds$Breed.Pond))$Var1)))
   ponds[ponds$Pond.ID %in% as.numeric(as.character(unique(as.data.frame(table(inds$Breed.Pond))$Var1))), "N.inds"] <- as.data.frame(table(inds$Breed.Pond))$Freq      ## calculate data for occupied ponds
   ponds[!ponds$Pond.ID %in% as.numeric(as.character(unique(as.data.frame(table(inds$Breed.Pond))$Var1))), "N.inds"] <- 0                                              ## set unoccupied pond counts to zero 
-  print(ponds)             ## print pond counts
+  
+  print(ponds)
+  pond.output <- rbind(pond.output, ponds)             ## print pond counts
 
-  # put(inds)                ## save "inds" data frame for each generation to "magicalized" output
-
-  # print(lines(x=density(inds$Age)$x, 
-  #            y=density(inds$Age)$y * length(inds$Age), type="l"))
-  print(paste0("Generation = ", g, " --- Total # Inds = ", dim(inds)[1], "; Terrestrial K = ", temp.terrestrial.K))    ## report progress and pop sizes
-  print(round(Sys.time() - start.time, 2))                                                                             ## report time progress
+  print(paste0("Generation = ", g, " --- Total # Inds = ", dim(inds)[1], 
+               "; Terrestrial K = ", terrestrial.k * n.patch))              ## report progress and pop sizes
+  print(round(Sys.time() - start.time, 2))                                  ## report time progress
 } ## end generations loop 
 print(round(Sys.time() - start.time, 2))         ## end timer
 
@@ -482,7 +487,7 @@ print(round(Sys.time() - start.time, 2))         ## end timer
 ## Save Genetic Data:
 ## ------------------
   ## Manipulate data? Export Genepop from gstudio?
-    g.magic <- gen.magic$inds[[100]]                    ## extract generation number from uber array
+    g.magic <- inds                    ## extract generation number from uber array
     g.magic$Ind.ID <- paste0("N", g.magic$Nat.Pond, "-B", g.magic$Breed.Pond, "-", g.magic$Sex, "-", rownames(g.magic))        ## create an individual ID metric
     g.df <- g.magic[ , c("Ind.ID", "Breed.Pond", 
                       "LocA", "LocB", "LocC", "LocD", "LocE", "LocF", "LocG", "LocH", "LocI", "LocJ", "LocK", 
