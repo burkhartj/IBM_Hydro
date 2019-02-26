@@ -17,7 +17,7 @@
   if(!require(ggplot2)) install.packages('ggplot2'); library("ggplot2")
   if(!require(hierfstat)) install.packages('hierfstat'); library("hierfstat")
   if(!require(landscapeR)) install.packages('landscapeR', dependencies=T); library('landscapeR')
-  if(!require(magicfor)) devtools::install_github("hoxo-m/magicfor"); library("magicfor")
+  # if(!require(magicfor)) devtools::install_github("hoxo-m/magicfor"); library("magicfor")
   if(!require(mmod)) install.packages('mmod'); library("mmod")
   if(!require(pegas)) install.packages('pegas'); library("pegas")
   if(!require(raster)) install.packages('raster', dependencies=T); library('raster')
@@ -65,7 +65,7 @@
   ## Pond info:
   ##-------------
 
-  n.ponds <- 2                        ## number of ponds to create
+  n.ponds <- 5                        ## number of ponds to create
   pond.size.mean <- 1                  ## mean size of pond (in 30x30 m grid cells)
   pond.size.sd <- 0                    ## st devation of pond
   pond.hydro.class <- 1                ## number of pond classes (used for hydroperiod later?)
