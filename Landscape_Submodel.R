@@ -16,13 +16,15 @@ pond.r <- makeClass(r,                      #Raster name
                     val = pond.hydro.class)       #Pond class
 
 ## Make border landscape to contain all dispersers within max dispersal distance of max pond raster extent
-br <- raster(matrix(0, (dim(pond.r)[1]+ceiling(max.disp.dist*2/30)), (dim(pond.r)[2]+ceiling(max.disp.dist*2/30))), 
+br <- raster(matrix(0, 
+                    ifelse(((dim(pond.r)[1]+ceiling(max.disp.dist*2/30)) %% 2) == 0, (dim(pond.r)[1]+ceiling(max.disp.dist*2/30)), (dim(pond.r)[1]+ceiling(max.disp.dist*2/30))+1),   ## number of rows
+                    ifelse(((dim(pond.r)[2]+ceiling(max.disp.dist*2/30)) %% 2) == 0, (dim(pond.r)[2]+ceiling(max.disp.dist*2/30)), (dim(pond.r)[2]+ceiling(max.disp.dist*2/30))+1)),  ## number of columns
              xmn = extent(pond.r)@xmin - (ceiling(max.disp.dist/30) * 30),
              xmx = extent(pond.r)@xmax + (ceiling(max.disp.dist/30) * 30), 
              ymn = extent(pond.r)@ymin - (ceiling(max.disp.dist/30) * 30), 
              ymx = extent(pond.r)@ymax + (ceiling(max.disp.dist/30) * 30))   #Set raster min and max y and x coords
 
-pond.r <- mosaic(br, pond.r, fun=sum)     ## make pond raster with the terrestrial border
+pond.r <- mosaic(br, pond.r, fun="sum")     ## make pond raster with the terrestrial border
 
 #Make terrestrial carrying capacity layer
 terrestrial.k.r <- ((br + terrestrial.k) * abs(pond.r-1)) #^2
