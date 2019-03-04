@@ -31,7 +31,8 @@
 
 ## Set Directories:
 ## ----------------
-  setwd("C:/Users/jjbxb3/Git_Repository/IBM_Hydro/")
+  setwd("C:/Users/Jacob/Git_Repository/IBM_Hydro/")  
+# setwd("C:/Users/jjbxb3/Git_Repository/IBM_Hydro/")
   input.dir <- paste0(getwd(), "/Data/")
   output.dir <- paste0(getwd(), "/Output/")
   plot.dir <- paste0(output.dir, "Plots/")
@@ -56,19 +57,18 @@
   landscape.y.coor.min <- 0
   landscape.y.coor.max <- 3000
   # n.patch <- ls[[1]]@ncols * ls[[1]]@nrows      ## Used to calculate landscape carrying capacity later 
-  terrestrial.k <- 180                 ## Terrestrial carrying capacity
-  patch.K.mult <- 180             ## Carrying capacity multiplier for each 30x30 m grid cell
-  
+  terrestrial.k <- 10                 ## Terrestrial carrying capacity per raster cell (30x30 m)
+ 
   ##----------------
   
     
   ## Pond info:
   ##-------------
 
-  n.ponds <- 5                        ## number of ponds to create
+  n.ponds <- 20                        ## number of ponds to create
   pond.size.mean <- 1                  ## mean size of pond (in 30x30 m grid cells)
   pond.size.sd <- 0                    ## st devation of pond
-  pond.hydro.class <- 1                ## number of pond classes (used for hydroperiod later?)
+  pond.hydro.class <- 1                ## number of pond classes (used for hydroperiod later?) --> needed for creating pond.r layer. If changed from "1", throws error in code
   pond.K.mult <- 2.25             ## Carrying capacity multiplier. Based off a Semlitsch paper 
   
   min.hydro <- 1                   ## minimum hydroperiod class; if < this threshold, no reproduction in pond
@@ -93,8 +93,8 @@
                              NA,1, 1, 1,NA),
                            ncol=5, byrow=TRUE)
   
-  max.disp.dist <- 5000                ## maximum dispersal distance (in meters) for creating a buffer 
-                                       ## (quick and dirty fix for world wrapping)
+  max.disp.dist <- 4000                ## maximum dispersal distance (in meters) for creating a buffer --- CHANGED FROM 5000 ON 28 FEB 2019
+  min.disp.dist <- 30                  ## (quick and dirty fix for world wrapping)
   
   new.move <- 30                       ## Step length
   philo.rate <- 0.90               ## rate of philopatry
@@ -106,8 +106,8 @@
   
   ## Breeding:
   ##-------------
-  n.inds <- 100              ## number of individuals to initialize model with
-  n.gens <- 100              ## number of generations to iterate over 
+  n.inds <- 500              ## number of individuals to initialize model with
+  n.gens <- 200              ## number of generations to iterate over 
   ##--------------
   
   ## Demographic info:
