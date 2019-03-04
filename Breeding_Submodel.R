@@ -530,31 +530,9 @@ print(round(Sys.time() - start.time, 2))         ## end timer
 
     boot.ppfis(gen.hier)
     indpca(gen.hier)
-    # gen.hier$color <- ifelse(gen.hier$pop=="P-1", yes="#a6cee3", 
-    #                          no=ifelse(gen.hier$pop=="P-2", yes="#1f78b4", 
-    #                                    no=ifelse(gen.hier$pop=="P-3", yes="#b2df8a", 
-    #                                              no=ifelse(gen.hier$pop=="P-4", yes="#33a02c", 
-    #                                                        no=ifelse(gen.hier$pop=="P-5", yes="#fb9a99", 
-    #                                                                  no=ifelse(gen.hier$pop=="P-6", yes="#e31a1c", 
-    #                                                                            no=ifelse(gen.hier$pop=="P-7", yes="#fdbf6f", 
-    #                                                                                      no=ifelse(gen.hier$pop=="P-8", yes="#ff7f00",
-    #                                                                                                no=ifelse(gen.hier$pop=="P-9", yes="#cab2d6", 
-    #                                                                                                          no=ifelse(gen.hier$pop=="P-10", yes="#6a3d9a", 
-    #                                                                                                                    no=ifelse(gen.hier$pop=="P-11", yes="#003c30",
-    #                                                                                                                              no=ifelse(gen.hier$pop=="P-12", yes="#1b7837", 
-    #                                                                                                                                        no=ifelse(gen.hier$pop=="P-13", yes="#bebada", 
-    #                                                                                                                                                  no=ifelse(gen.hier$pop=="P-14", yes="#fdb462",
-    #                                                                                                                                                            no=ifelse(gen.hier$pop=="P-15", yes="#b3de69",
-    #                                                                                                                                                                      no=ifelse(gen.hier$pop=="P-16", yes="#8dd3c7",
-    #                                                                                                                                                                                no=ifelse(gen.hier$pop=="P-17", yes="#800026",
-    #                                                                                                                                                                                          no=ifelse(gen.hier$pop=="P-18", yes="#67000d",
-    #                                                                                                                                                                                                    no=ifelse(gen.hier$pop=="P-19", yes="#252525",
-    #                                                                                                                                                                                                              no=ifelse(gen.hier$pop=="P-20", yes="#8c510a", no=NA
-    #                             ))))))))))))))))))))
-    
+   
     plot(indpca(gen.hier), col=rainbow(20)[as.numeric(gen.hier$pop)], cex = 0.7)
-    # 
-    # 
+   
     # setPop(gen.data) <- ~pop
     # gen_diff <- diff_stats(gen.data)
 
