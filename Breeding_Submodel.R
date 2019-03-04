@@ -4,29 +4,14 @@
 ## By: J. Burkhart and B. Ousterhout
 ## ---------------------------------------------------------
 
-## Load Packages:
-## --------------
-  # if(!require(actuar)) install.packages('actuar'); library('actuar')
-  # if(!require(adegenet)) install.packages('adegenet'); library("adegenet")
-  # if(!require(pegas)) install.packages('pegas'); library("pegas")
-  # if(!require(hierfstat)) install.packages('hierfstat'); library("hierfstat")
-  # if(!require(mmod)) install.packages('mmod'); library("mmod")
-  # if(!require(reshape2)) install.packages('reshape2'); library("reshape2")
-  # if(!require(ggplot2)) install.packages('ggplot2'); library("ggplot2")
-## --------------
 
-## Source Landscape code:
-## ----------------------
-source("C:/Users/jjbxb3/Git_Repository/IBM_Hydro/Landscape_Submodel.R")
-## ----------------------
+## Build Pond and Terrestrial Landscape:
+## -------------------------------------
+  source("Landscape_Submodel.R")
+## -------------------------------------
 
-# ## Import Data Files: 
-# ## ------------------
-#   gen.df <- read.csv("C:/Users/jjbxb3/Box Sync/Mizzou/Research/IBM_Hydro-desktop/Data/WEP_Modularity_DataFile.csv", header=T, stringsAsFactors = F)        ## import genetic data (move to the model_initialization.R script later)
-#     gen.df <- gen.df[,-((dim(gen.df)[2]-2):dim(gen.df)[2])]                                                   ## trim up the loci that were ommitted
-# ## ------------------
-# 
-# ## Initialize Models:
+
+# ## Initialize Models:  ---> Moved to Model_Initialization.R code 
 # ## ------------------
 #   ## Input Parameters to automate changes:
 #     n.inds <- 100               ## number of individuals to create across all ponds
@@ -102,12 +87,13 @@ source("C:/Users/jjbxb3/Git_Repository/IBM_Hydro/Landscape_Submodel.R")
   
   ponds$Pond.K <- round(pond.K.mult * ponds$Pond.Area)                             ## calculate pond K based upon 
   
-  ponds$Pond.X <- as.data.frame(rasterToPoints(pond.r, function(x){x == 1}))$x     ## extract x-coordinates from pond raster
-  ponds$Pond.Y <- as.data.frame(rasterToPoints(pond.r, function(x){x == 1}))$y     ## extract y-coordinates from pond raster
+  ponds$Pond.X <- as.data.frame(rasterToPoints(ls[[1]], function(x){x == 1}))$x     ## extract x-coordinates from pond raster (pond.r)
+  ponds$Pond.Y <- as.data.frame(rasterToPoints(ls[[1]], function(x){x == 1}))$y     ## extract y-coordinates from pond raster (pond.r)
           
   
   ## Create Data Frame of Individual Demographic Information:
-  inds <- data.frame(Sex = sample(c("M", "F"), n.inds, replace=T), 
+  inds <- data.frame(Ind.ID = character(n.inds),
+                     Sex = sample(c("M", "F"), n.inds, replace=T), 
                      Age = sample(0:round(max.age / 2), n.inds, T),      
                      SVL = numeric(n.inds),   
                      Rep.Active = NA,                                                 ## counter to assess whether reproductively active
@@ -135,7 +121,8 @@ source("C:/Users/jjbxb3/Git_Repository/IBM_Hydro/Landscape_Submodel.R")
                      LocU=numeric(n.inds)
                      )
   
-     inds$Breed.Pond <- ifelse(inds$Disp.Prob > philo.rate, yes=sample(unique(inds$Nat.Pond), 1, T), no=inds$Nat.Pond)
+     inds$Breed.Pond <- inds$Nat.Pond   #ifelse(inds$Disp.Prob > philo.rate, yes=sample(unique(inds$Nat.Pond), 1, T), no=inds$Nat.Pond)
+     inds$Ind.ID <- paste0("N", inds$Nat.Pond, "-B", inds$Breed.Pond, "-G", inds$Generation, "-", rownames(inds))
      
      ponds$N.inds <- as.data.frame(table(inds$Breed.Pond))$Freq        ## calculate the number of individuals assigned to each pond
      
@@ -162,82 +149,89 @@ source("C:/Users/jjbxb3/Git_Repository/IBM_Hydro/Landscape_Submodel.R")
       
       ## Initialize Genetic Data: 
       ## Grab two random alleles from each loci per individual per locus
-      inds$LocA[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_37, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_37, ":")), 1))
-      inds$LocB[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_50, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_50, ":")), 1))
-      inds$LocC[i] <- paste0(sample(unlist(strsplit(gen.df$ac300, ":")), 1), ":", sample(unlist(strsplit(gen.df$ac300, ":")), 1))
-      inds$LocD[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_25, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_25, ":")), 1))
-      inds$LocE[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_258, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_258, ":")), 1))
-      inds$LocF[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_85, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_85, ":")), 1))
-      inds$LocG[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_44, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_44, ":")), 1))
-      inds$LocH[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_39, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_39, ":")), 1))
-      inds$LocI[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_40, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_40, ":")), 1))
-      inds$LocJ[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_312, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_312, ":")), 1))
-      inds$LocK[i] <- paste0(sample(unlist(strsplit(gen.df$aj_346, ":")), 1), ":", sample(unlist(strsplit(gen.df$aj_346, ":")), 1))
-      inds$LocL[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_31, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_31, ":")), 1))
-      inds$LocM[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_311, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_311, ":")), 1))
-      inds$LocN[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_36, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_36, ":")), 1))
-      inds$LocO[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_21, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_21, ":")), 1))
-      inds$LocP[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_27, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_27, ":")), 1))
-      inds$LocQ[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_28, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_28, ":")), 1))
-      inds$LocR[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_86, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_86, ":")), 1))
-      inds$LocS[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_153, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_153, ":")), 1))
-      inds$LocT[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_84, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_84, ":")), 1))
-      inds$LocU[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_314, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_314, ":")), 1))
-      
+        inds$LocA[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_37, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_37, ":")), 1))
+        ## -----
+        inds$LocB[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_50, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_50, ":")), 1))
+        inds$LocC[i] <- paste0(sample(unlist(strsplit(gen.df$ac300, ":")), 1), ":", sample(unlist(strsplit(gen.df$ac300, ":")), 1))
+        inds$LocD[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_25, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_25, ":")), 1))
+        inds$LocE[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_258, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_258, ":")), 1))
+        inds$LocF[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_85, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_85, ":")), 1))
+        inds$LocG[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_44, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_44, ":")), 1))
+        inds$LocH[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_39, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_39, ":")), 1))
+        inds$LocI[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_40, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_40, ":")), 1))
+        inds$LocJ[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_312, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_312, ":")), 1))
+        inds$LocK[i] <- paste0(sample(unlist(strsplit(gen.df$aj_346, ":")), 1), ":", sample(unlist(strsplit(gen.df$aj_346, ":")), 1))
+        inds$LocL[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_31, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_31, ":")), 1))
+        inds$LocM[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_311, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_311, ":")), 1))
+        inds$LocN[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_36, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_36, ":")), 1))
+        inds$LocO[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_21, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_21, ":")), 1))
+        inds$LocP[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_27, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_27, ":")), 1))
+        inds$LocQ[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_28, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_28, ":")), 1))
+        inds$LocR[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_86, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_86, ":")), 1))
+        inds$LocS[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_153, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_153, ":")), 1))
+        inds$LocT[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_84, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_84, ":")), 1))
+        inds$LocU[i] <- paste0(sample(unlist(strsplit(gen.df$Aa_314, ":")), 1), ":", sample(unlist(strsplit(gen.df$Aa_314, ":")), 1))
+      ## -----
       
       ## Assign individuals to a terrestrial patch 
-      inds$Init.Angle[i] <- round(runif(1, 1, 360))                                    ## draw dispersal angle
-      inds$dist.max[i] <- rllogis(1, shape=disp.shape, scale=disp.scale)               ## draw a maximum dispersal distance
+      inds$Init.Angle[i] <- round(runif(1, 1, 360))                                                                                     ## draw dispersal angle
+      inds$dist.max[i] <- rtrunc(n=1, spec="llogis", a=min.disp.dist, b=max.disp.dist, shape=disp.shape, scale=disp.scale)              ## draw a maximum dispersal distance
       inds$Patch.X[i] <- ponds[ponds$Pond.ID %in% inds$Nat.Pond[i], "Pond.X"] + inds$dist.max[i] * sin((inds$Init.Angle[i])*(pi/180))   ## move individual from pond in x-coor
       inds$Patch.Y[i] <- ponds[ponds$Pond.ID %in% inds$Nat.Pond[i], "Pond.Y"] + inds$dist.max[i] * cos((inds$Init.Angle[i])*(pi/180))   ## move individual from pond in y-coor
 
         ## Check that number of individuals on patch is < K/2; 
           ## if yes -> assign to terrestrial.resident.r; if no -> loop until find unoccupied patch
         repeat{
-          Patch.K <- extract(ls[[2]], cbind(inds$Patch.X[i], inds$Patch.Y[i]))                          ## extract patch 
-          patch.inds <- terrestrial.resident.r[cellFromXY(ls, cbind(inds$Patch.X[i],inds$Patch.Y[i]))]
+          Patch.K <- extract(ls[[2]], cbind(inds$Patch.X[i], inds$Patch.Y[i]))                            ## extract patch K from 'terrestrial.k.r' layer
+          patch.inds <- ls[[3]][cellFromXY(ls, cbind(inds$Patch.X[i],inds$Patch.Y[i]))]                   ## pull # of inds from 'terrestrial.resident.r' layer
+                        #terrestrial.resident.r[cellFromXY(ls, cbind(inds$Patch.X[i],inds$Patch.Y[i]))]
                             #subset(inds, Patch.X == inds$Patch.X[i] & Patch.Y == inds$Patch.Y[i]))[1]   ## calculate # inds on patch Resident surface and update that. 
           
           print(paste0("Check Terr K for ind #", i, " ----- Patch K = ", Patch.K, " ----- Patch.inds = ", patch.inds))  ## report progress
           
           if(patch.inds > floor(Patch.K / 2) | is.na(Patch.K)==T) {   ## check if patch has less than half carrying capacity, if not -> redraw patch
             inds$Init.Angle[i] <- round(runif(1, 1, 360))             
-            inds$dist.max[i] <- rtrunc(n = 1, spec = "llogis", a = 30, b = 2000, shape = disp.shape, scale = disp.scale)
+            inds$dist.max[i] <- rtrunc(n=1, spec="llogis", a=min.disp.dist, b=max.disp.dist, shape=disp.shape, scale=disp.scale)
             inds$Patch.X[i] <- ponds[ponds$Pond.ID %in% inds$Nat.Pond[i], "Pond.X"] + inds$dist.max[i] * sin((inds$Init.Angle[i])*(pi/180))
             inds$Patch.Y[i] <- ponds[ponds$Pond.ID %in% inds$Nat.Pond[i], "Pond.Y"] + inds$dist.max[i] * cos((inds$Init.Angle[i])*(pi/180))
           }
             else { 
               # print(i, " - passed")
-              terrestrial.resident.r[cellFromXY(ls, cbind(inds$Patch.X[i],inds$Patch.Y[i]))] <- terrestrial.resident.r[cellFromXY(ls, cbind(inds$Patch.X[i], inds$Patch.Y[i]))]+1
+              ls[[3]][cellFromXY(ls, cbind(inds$Patch.X[i],inds$Patch.Y[i]))] <- ls[[3]][cellFromXY(ls, cbind(inds$Patch.X[i], inds$Patch.Y[i]))]+1
+              # terrestrial.resident.r[cellFromXY(ls, cbind(inds$Patch.X[i],inds$Patch.Y[i]))] <- terrestrial.resident.r[cellFromXY(ls, cbind(inds$Patch.X[i], inds$Patch.Y[i]))]+1
               break
             }      ## end else statement
         }      ## end repeat loop
     }      ## end for loop
 
-    plot(terrestrial.resident.r, xlim=c(-90,3000), ylim=c(-90,3000), 
-         breaks=c(0,1,10,25,50,100,180), 
-         col=c("black", "grey", "tan", "yellow", "orange", "red", "purple")) 
+    plot(ls[[3]], main="Initial Resident Layer (pre loop)", #terrestrial.resident.r, 
+         xlim=c(-690,3690), ylim=c(-690,3690))#, 
+         # breaks=c(0,1,10,25,50,100,180), 
+         # col=c("black", "grey", "tan", "yellow", "orange", "red", "purple")) 
     points(ponds$Pond.X, ponds$Pond.Y, 
            cex=as.numeric(ponds$Hydroperiod)+1, col="magenta") 
+    
+    table(as.matrix(ls[[3]]))
 ## ------------------  
 
      
 ## Breeding Migration:
 ## -------------------
-inds0 <- inds    
+inds0 <- inds
+ponds$Generation <- 0                             ## add generation counter
 pond.output <- ponds[-c(1:dim(ponds)[1]), ]  
-
+gen.output <- inds
 
 start.time <- Sys.time()       
-for(g in 1:n.gens){    
+g <- 0
+repeat{   
+  g <- g + 1                                           ## set up generation counter
   ## Set Up Breeding Functionality
   p.sub <- subset(ponds, Hydroperiod >= min.hydro)   ## Subset out the pond with non-suitable hydroperiods
   pond.list <- unique(p.sub$Pond.ID)                 ## Create a vector of unique ID's to iterate over.  CAN BE DELETED IN THE FUTURE; however, 
   off.df <- inds[-c(1:dim(inds)[1]), ]               ## create empty data frame to populate with offspring within the loop
   
-  
-  ## Pond Test Condition
-  
+
   ## Iterate through suitable breeding ponds
   for(p in 1:length(pond.list)){
     off.pond <- inds[-c(1:dim(inds)[1]), ]             ## create empty data frame for offspring within each pond
@@ -266,19 +260,20 @@ for(g in 1:n.gens){
           colnames(num.off) <- colnames(inds)                                           ## assign column names from "ind" data frame, in the same order (essentially for later joining)
           
           ## Demographics
+          num.off$Ind.ID <- character(n.off)                                   ## create empty individual ID vector
           num.off$Sex <- sample(c("F", "M"), n.off, T)                         ## randomly assign sex (50:50 draw)
           num.off$Age <- rep(0, times=n.off)                                   ## initialize age
           num.off$SVL <- round(rnorm(n.off, SVL.0.mu, SVL.0.sd), 2)            ## SVL at metamorphosis; ---- UPDATE LATER: random normal draw for now. will update to density dependent
           num.off$Rep.Active <- rep(F, times=n.off)                            ## Set reproductively active to "FALSE"
           num.off$IBI <- rep(0, times=n.off)                                   ## Set interbreeding interval to 0
           num.off$Nat.Pond <- rep(pond.list[p], times=n.off)                   ## Set natal pond to mother's breeding pond
-          num.off$Patch.X <- numeric(n.off)                                    ## patch x-coordinate; populate with dispersal submodel later
-          num.off$Patch.Y <- numeric(n.off)                                    ## patch y-coordinate; populate with dispersal submodel later
+          num.off$Patch.X <- as.numeric(rep(NA, n.off))                                 ## patch x-coordinate; populate with dispersal submodel later
+          num.off$Patch.Y <- as.numeric(rep(NA, n.off))                                    ## patch y-coordinate; populate with dispersal submodel later
           num.off$Disp.Prob <- round(rbeta(n.off, disp.beta1, disp.beta2), 3)  ## create a vector of dispersal probability
-          num.off$Breed.Pond <- ifelse(num.off$Disp.Prob > philo.rate, yes=sample(unique(ponds$Pond.ID), 1, T), no=num.off$Nat.Pond)     ## assing new breeding pond --- DOUBLE CHECK THAT DISPERSAL SUBMODEL DOESN'T OVERRIDE THIS, if so, make an empty numeric vector
+          num.off$Breed.Pond <- as.numeric(rep(NA, n.off))      ## assing new breeding pond --- DOUBLE CHECK THAT DISPERSAL SUBMODEL DOESN'T OVERRIDE THIS, if so, make an empty numeric vector
           num.off$Init.Angle <- round(runif(n.off, 1, 360))                    ## choose initial movement angle
-          num.off$dist.max <- rtrunc(n = n.off, spec = "llogis", a = 30, b = 2000, 
-                                      shape = disp.shape, scale = disp.scale)  ## Peterman et al. 2015 dispersal distance for A. annulatum? 1,693m (95% CI 1,645-1,740 m for AMAN)
+          num.off$dist.max <- rtrunc(n=1, spec="llogis", a=min.disp.dist, b=max.disp.dist,
+                                     shape=disp.shape, scale=disp.scale)       ## Peterman et al. 2015 dispersal distance for A. annulatum? 1,693m (95% CI 1,645-1,740 m for AMAN)
           num.off$Mort.Prob <- numeric(n.off)                                  ## empty vector for later imposing mortality 
           num.off$Bred <- rep(0, times=n.off)                                  ## vector of zeros for breeding
           num.off$Generation <- rep(g, times=n.off)                            ## vector to store generation of origin 
@@ -286,6 +281,7 @@ for(g in 1:n.gens){
           ## Genetics --
             ## System mimics polyandry. Randomly selects one of two females alleles, equal to number of offspring. 
             ## Randomly selects one of males alleles at each locus, each offspring has single paternity.
+            ## -----------------
             num.off$LocA <- paste0(unlist(strsplit(rep.feme$LocA[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocA, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
             num.off$LocB <- paste0(unlist(strsplit(rep.feme$LocB[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocB, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
             num.off$LocC <- paste0(unlist(strsplit(rep.feme$LocC[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocC, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
@@ -307,6 +303,7 @@ for(g in 1:n.gens){
             num.off$LocS <- paste0(unlist(strsplit(rep.feme$LocS[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocS, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
             num.off$LocT <- paste0(unlist(strsplit(rep.feme$LocT[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocT, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
             num.off$LocU <- paste0(unlist(strsplit(rep.feme$LocU[f], ":"))[sample(1:2, n.off, T)], ":", unlist(strsplit(male.df$LocU, ":"))[sample(1:2, n.off, T) + seq(0, n.off*2-1, by=2)])
+            ## -----------------
         }
         
         ## Update output data frame
@@ -315,11 +312,11 @@ for(g in 1:n.gens){
       }  ## end FEMALES iterations
       
       ## Impose LARVAL carrying capacity catch.  
-      if(ponds[ponds$Pond.ID %in% pond.list[p], "Pond.K"] < dim(off.pond)[1]){
-         off.pond <- off.pond[-sample(x = 1:dim(off.pond)[1], replace=F,
-                                      size = (dim(off.pond)[1]) - ponds[ponds$Pond.ID %in% pond.list[p], "Pond.K"]), ]
-      }
-      
+      # if(ponds[ponds$Pond.ID %in% pond.list[p], "Pond.K"] < dim(off.pond)[1]){
+      #    off.pond <- off.pond[-sample(x = 1:dim(off.pond)[1], replace=F,
+      #                                 size = (dim(off.pond)[1]) - ponds[ponds$Pond.ID %in% pond.list[p], "Pond.K"]), ]
+      # }
+       
       ## Update output data set... might be able to pull straight into the 'inds' data frame... 
       off.df <- rbind(off.df, off.pond)             ## save pond data to a temporary generation offspring data frame 
       # print(paste0("number of offspring = ", dim(off.df)[1]))
@@ -341,7 +338,7 @@ for(g in 1:n.gens){
     new.move <- 30              ## DELETE LATER. Step length in the model init file
 
     ## Simulation Code
-    repeat{                ## Loop over all dispersing animals
+    repeat{                ## Loop over all offspring
       run.steps <- run.steps + 1
       new.x <- ponds[ponds$Pond.ID %in% off.df$Nat.Pond[run.steps], "Pond.X"] #Extract individuals pond x coord
       new.y <- ponds[ponds$Pond.ID %in% off.df$Nat.Pond[run.steps], "Pond.Y"] #Extract individuals pond y coord
@@ -369,22 +366,22 @@ for(g in 1:n.gens){
           break}
 
         #If find available home (Terrestrial.Resident < Terrestrial.k), stop and move on to next individual
-        if (extract( ls[[1]], cbind(new.x,new.y)) == 0 &       #If not on pond cell
-            extract( ls[[3]], cbind(new.x,new.y)) < extract( ls[[2]], cbind(new.x,new.y))){ #And k is greater than number of patch occupants
+        if (extract(ls[[1]], cbind(new.x,new.y)) == 0 &       #If not on pond cell
+            extract(ls[[3]], cbind(new.x,new.y)) < extract(ls[[2]], cbind(new.x,new.y))){ #And k is greater than number of patch occupants
             success.disp <- 1
             # disp.cell <- cellFromXY(ls, cbind(new.x,new.y))
             off.df$Patch.X[run.steps] <- new.x
             off.df$Patch.Y[run.steps] <- new.y
-            terrestrial.resident.r <- raster(ls, layer = 3)
-            terrestrial.resident.r[cellFromXY(ls, cbind(new.x,new.y))] <- terrestrial.resident.r[cellFromXY(ls, cbind(new.x,new.y))]+1
-            ls <- stack(pond.r, terrestrial.k.r, terrestrial.resident.r, dist.r)
+              # terrestrial.resident.r <- raster(ls, layer = 3)
+            ls[[3]][cellFromXY(ls, cbind(new.x,new.y))] <- ls[[3]][cellFromXY(ls, cbind(new.x,new.y))]+1    # terrestrial.resident.r[cellFromXY(ls, cbind(new.x,new.y))] <- terrestrial.resident.r[cellFromXY(ls, cbind(new.x,new.y))]+1
+            # ls <- stack(pond.r, terrestrial.k.r, terrestrial.resident.r, dist.r)
           break}
 
         #Check neighborhood for available home (Terrestrial.Resident < Terrestrial.k), stop and move on to next individual
-        adj.cells <- adjacent(x = terrestrial.resident.r,
-                              cells = cellFromXY(terrestrial.resident.r, cbind(new.x,new.y)),
+        adj.cells <- adjacent(x = ls[[3]], #terrestrial.resident.r,
+                              cells = cellFromXY(ls[[3]], cbind(new.x,new.y)),   #terrestrial.resident.r
                               directions = sensing.matrix, pairs = FALSE, sorted=TRUE)
-        available <- extract(x = terrestrial.k.r, y = adj.cells) - extract(x = terrestrial.resident.r, y = adj.cells)
+        available <- extract(x = ls[[2]], y = adj.cells) - extract(x = ls[[3]], y = adj.cells)   # extract(x = terrestrial.k.r, y = adj.cells) - extract(x = terrestrial.resident.r, y = adj.cells)
 
         #Assign salamander to first available
         i <- 0
@@ -396,11 +393,11 @@ for(g in 1:n.gens){
           if(available[i] > 0){
             disp.to.adj <- 1
             # disp.cell <- adj.cells[i]
-            terrestrial.resident.r <- raster(ls, layer = 3)
-            off.df$Patch.X[run.steps] <- xFromCell(terrestrial.resident.r, adj.cells[i])
-            off.df$Patch.Y[run.steps] <- yFromCell(terrestrial.resident.r, adj.cells[i])
-            terrestrial.resident.r[adj.cells[i]] <- terrestrial.resident.r[adj.cells[i]]+1
-            ls <- stack(pond.r, terrestrial.k.r, terrestrial.resident.r, dist.r)              ## double check if we need to keep re-making these
+            # terrestrial.resident.r <- raster(ls, layer = 3)
+            off.df$Patch.X[run.steps] <- xFromCell(ls[[3]], adj.cells[i])  # xFromCell(terrestrial.resident.r, adj.cells[i])
+            off.df$Patch.Y[run.steps] <- yFromCell(ls[[3]], adj.cells[i])  # yFromCell(terrestrial.resident.r, adj.cells[i])
+            ls[[3]][adj.cells[i]] <- ls[[3]][adj.cells[i]]+1 #terrestrial.resident.r[adj.cells[i]] <- terrestrial.resident.r[adj.cells[i]]+1
+            # ls <- stack(pond.r, terrestrial.k.r, terrestrial.resident.r, dist.r)              ## double check if we need to keep re-making these
             break}
         }
 
@@ -411,24 +408,33 @@ for(g in 1:n.gens){
         dist.traveled <- dist.traveled + new.move    ## calculate the total distance traveled for the animal
       }
       
-      d <- pointDistance(p1 =cbind(ponds$Pond.X, ponds$Pond.Y),
-                         p2 = cbind(off.df[run.steps,'Patch.X'], off.df[run.steps, 'Patch.Y']),
-                         lonlat = FALSE)
-      off.df$Breed.Pond[run.steps] <- ponds$Pond.ID[which.min(d)]
+      
+      ## NEED TO FIGURE OUT SOMETHING HERE...RIGHT NOW, THIS IS BREAKING THE LOOP AND ALL INDIVIDUALS 
+      ## ARE GETTING ASSIGNED TO A BREEDING POND, REGARDLESS OF WHETHER THEY FIND A TERRESTRIAL PATCH
+      ## TRIED AN 'IF STATEMENT' CURRENTLY, WILL SEE IF THAT FIXES THINGS
+      if(success.disp == 1){
+        d <- pointDistance(p1 =cbind(ponds$Pond.X, ponds$Pond.Y),
+                           p2 = cbind(off.df[run.steps,'Patch.X'], off.df[run.steps, 'Patch.Y']),
+                           lonlat = FALSE)
+        off.df$Breed.Pond[run.steps] <- ponds$Pond.ID[which.min(d)]
+      }
       
       total.dist <- c(total.dist, dist.traveled)                      ## store total distance traveled for each animal
       die <- c(die, die.disp)
       success <- c(success, success.disp)
 
-      if (run.steps == dim(off.df)[1]) {break} ##n.ind) {break}              ## exit repeat loop when number of run steps is 20?? AKA more than 20 trials were run??
+      if (run.steps == dim(off.df)[1]) {break} ##n.ind) {break}         ## exit repeat loop when number of run steps equals number of offspring produced across all ponds
     }
-
+  
+    off.df <- subset(off.df, is.na(off.df$Breed.Pond) == F)                      ## POTENTIALLY DELETE THIS LATER. DEPENDS ON HOW THE IF STATEMENT EXECUTES ABOVE
+    off.df$Ind.ID <- paste0("N", off.df$Nat.Pond, "-B", off.df$Breed.Pond, "-G", g, "-", rownames(off.df))
     # print(plyr::count(die))
     # print(plyr::count(success))
     # print(plot(terrestrial.resident.r))
 
   }  ## end off spring catch
-
+   # plot(ls[[3]], main=paste0("Post breeding, pre mortality, gen = ", g), #terrestrial.resident.r, 
+   #               xlim=c(-690,3690), ylim=c(-690,3690))
 
   ## Join new and old data frames
   inds <- rbind(inds, off.df)                 ## join surviving offspring data into the full data set
@@ -446,13 +452,16 @@ for(g in 1:n.gens){
                                                    no=ifelse(inds$Age >=5, yes=inds$SVL + (inds$Age - 4) * 0.5, no=NA)))))   ## grow individuals based on Taylor and Scott equations
   
   inds$IBI <- ifelse(inds$Bred == 1, yes = 0, no = inds$IBI + 1)              ## calculate inter-breeding interval
+  inds$Generation <- g
+  gen.output <- rbind(gen.output, inds)
+  
   inds$Rep.Active <- ifelse((inds$Bred==1 & inds$Sex=="F"),                   ## update reproductive activity status
                             yes=F,
                             no=ifelse((inds$Sex=="F" & inds$Age>=min.age.F & inds$SVL>=min.SVL.F), 
                                       yes = sample(c(T, F), dim(subset(inds, Sex=="F" & Age>=min.age.F & SVL>=min.SVL.F)[1]), replace=T), 
                                       no = ifelse((inds$Sex=="M" & inds$SVL>=min.SVL.M & inds$Age>=min.age.M), 
                                                    yes=T, no=inds$Rep.Active)))
-  
+
   inds$Bred <- 0                                ## reset breeding counter
   
   
@@ -462,21 +471,28 @@ for(g in 1:n.gens){
   inds <- inds[which(inds$Mort.Prob == F), ]                                                        ## keep only individuals that pass the random mortality catch
   
   ## Update terrestrial resident layers
-  count.cell <- count(cellFromXY(terrestrial.resident.r, cbind(inds$Patch.X, inds$Patch.Y)))
-  terrestrial.resident.r[count.cell$x] <- count.cell$freq
+  count.cell <- count(cellFromXY(ls[[3]], cbind(inds$Patch.X, inds$Patch.Y)))      ## count the frequency of individuals 
+  ls[[3]][] <- 0                                                                   ## reset occupancy to zero 
+  ls[[3]][count.cell$x] <- count.cell$freq                                         ## update residency with cell counts from 'inds' dataframe
    
   
   ## Update count of individuals per pond
   # find.ponds <- p.test$Pond.ID %in% as.numeric(as.character(unique(as.data.frame(table(inds$Breed.Pond))$Var1)))
   ponds[ponds$Pond.ID %in% as.numeric(as.character(unique(as.data.frame(table(inds$Breed.Pond))$Var1))), "N.inds"] <- as.data.frame(table(inds$Breed.Pond))$Freq      ## calculate data for occupied ponds
   ponds[!ponds$Pond.ID %in% as.numeric(as.character(unique(as.data.frame(table(inds$Breed.Pond))$Var1))), "N.inds"] <- 0                                              ## set unoccupied pond counts to zero 
-  
+  ponds$Generation <- g
   print(ponds)
+  
   pond.output <- rbind(pond.output, ponds)             ## print pond counts
-
+  
   print(paste0("Generation = ", g, " --- Total # Inds = ", dim(inds)[1], 
                "; Terrestrial K = ", terrestrial.k * n.patch))              ## report progress and pop sizes
   print(round(Sys.time() - start.time, 2))                                  ## report time progress
+  
+  ## Temporary tracker for terrestiral.resident.r surface behavior
+  # print(plot(ls[[3]], main=paste0("generation - " , g), xlim=c(-690,3690), ylim=c(-690,3690)))
+ 
+  if (g >= n.gens | dim(inds)[1] == 0) {break}   ## end loop if the number of individuals = 0 or the max number of generations is reached. 
 } ## end generations loop 
 print(round(Sys.time() - start.time, 2))         ## end timer
 
@@ -485,58 +501,80 @@ print(round(Sys.time() - start.time, 2))         ## end timer
   
 
 ## Save Genetic Data:
-## ------------------
+# ## ------------------
   ## Manipulate data? Export Genepop from gstudio?
-    g.magic <- inds                    ## extract generation number from uber array
+    g.magic <- subset(gen.output, Generation == n.gens)                    ## extract generation number from uber array
     g.magic$Ind.ID <- paste0("N", g.magic$Nat.Pond, "-B", g.magic$Breed.Pond, "-", g.magic$Sex, "-", rownames(g.magic))        ## create an individual ID metric
-    g.df <- g.magic[ , c("Ind.ID", "Breed.Pond", 
-                      "LocA", "LocB", "LocC", "LocD", "LocE", "LocF", "LocG", "LocH", "LocI", "LocJ", "LocK", 
+    g.df <- g.magic[ , c("Ind.ID", "Breed.Pond",
+                      "LocA", "LocB", "LocC", "LocD", "LocE", "LocF", "LocG", "LocH", "LocI", "LocJ", "LocK",
                       "LocL", "LocM", "LocN", "LocO", "LocP", "LocQ", "LocR", "LocS", "LocT", "LocU")]
 
-    gen.data <- df2genind(X=g.df[,c("LocA", "LocB", "LocC", "LocD", "LocE", "LocF", "LocG", "LocH", "LocI", "LocJ", "LocK", 
+    gen.data <- df2genind(X=g.df[,c("LocA", "LocB", "LocC", "LocD", "LocE", "LocF", "LocG", "LocH", "LocI", "LocJ", "LocK",
                                     "LocL", "LocM", "LocN", "LocO", "LocP", "LocQ", "LocR", "LocS", "LocT", "LocU")],
                           ind.names=g.df$Ind.ID,
-                          loc.names=c("LocA", "LocB", "LocC", "LocD", "LocE", "LocF", "LocG", "LocH", "LocI", "LocJ", "LocK", 
+                          loc.names=c("LocA", "LocB", "LocC", "LocD", "LocE", "LocF", "LocG", "LocH", "LocI", "LocJ", "LocK",
                                       "LocL", "LocM", "LocN", "LocO", "LocP", "LocQ", "LocR", "LocS", "LocT", "LocU"),
                           type="codom",
                           # strata=gen.df$Breed.Pond,
                           pop=g.df$Breed.Pond,
                           sep=":",
                           ncode=3)
-    
+
     summary(gen.data)
     bartlett.test(list(summary(gen.data)$Hexp, summary(gen.data)$Hobs))
-    
+
     gen.hier <- genind2hierfstat(gen.data, pop = gen.data@pop)
     gen.hier$pop <- paste0("P-", gen.hier$pop)
     basicstat <- basic.stats(gen.hier, diploid = TRUE)
     names(basicstat)
-    
-    boot.ppfis(gen.hier) 
+
+    boot.ppfis(gen.hier)
     indpca(gen.hier)
-    plot(indpca(gen.hier), cex = 0.7)
+    # gen.hier$color <- ifelse(gen.hier$pop=="P-1", yes="#a6cee3", 
+    #                          no=ifelse(gen.hier$pop=="P-2", yes="#1f78b4", 
+    #                                    no=ifelse(gen.hier$pop=="P-3", yes="#b2df8a", 
+    #                                              no=ifelse(gen.hier$pop=="P-4", yes="#33a02c", 
+    #                                                        no=ifelse(gen.hier$pop=="P-5", yes="#fb9a99", 
+    #                                                                  no=ifelse(gen.hier$pop=="P-6", yes="#e31a1c", 
+    #                                                                            no=ifelse(gen.hier$pop=="P-7", yes="#fdbf6f", 
+    #                                                                                      no=ifelse(gen.hier$pop=="P-8", yes="#ff7f00",
+    #                                                                                                no=ifelse(gen.hier$pop=="P-9", yes="#cab2d6", 
+    #                                                                                                          no=ifelse(gen.hier$pop=="P-10", yes="#6a3d9a", 
+    #                                                                                                                    no=ifelse(gen.hier$pop=="P-11", yes="#003c30",
+    #                                                                                                                              no=ifelse(gen.hier$pop=="P-12", yes="#1b7837", 
+    #                                                                                                                                        no=ifelse(gen.hier$pop=="P-13", yes="#bebada", 
+    #                                                                                                                                                  no=ifelse(gen.hier$pop=="P-14", yes="#fdb462",
+    #                                                                                                                                                            no=ifelse(gen.hier$pop=="P-15", yes="#b3de69",
+    #                                                                                                                                                                      no=ifelse(gen.hier$pop=="P-16", yes="#8dd3c7",
+    #                                                                                                                                                                                no=ifelse(gen.hier$pop=="P-17", yes="#800026",
+    #                                                                                                                                                                                          no=ifelse(gen.hier$pop=="P-18", yes="#67000d",
+    #                                                                                                                                                                                                    no=ifelse(gen.hier$pop=="P-19", yes="#252525",
+    #                                                                                                                                                                                                              no=ifelse(gen.hier$pop=="P-20", yes="#8c510a", no=NA
+    #                             ))))))))))))))))))))
     
-    
-    setPop(gen.data) <- ~pop
-    gen_diff <- diff_stats(gen.data)
-    
-    
-    
-    
-    
+    plot(indpca(gen.hier), col=rainbow(20)[as.numeric(gen.hier$pop)], cex = 0.7)
+    # 
+    # 
+    # setPop(gen.data) <- ~pop
+    # gen_diff <- diff_stats(gen.data)
+
+
+
+
+
       ## Manipulate data? Export Genepop from gstudio?
-      gen.data <- inds
-      gen.data$ind <- paste0("NP", gen.data$Nat.Pond, "-BP", gen.data$Breed.Pond, "-", gen.data$Sex, "-", row.names(gen.data))
-      gen.data$pop <- paste0("Pond-", gen.data$Breed.Pond)
-      gen.data <- gen.data[ , c("ind", "pop", "Patch.X", "Patch.Y", "Sex", "Age", 
-                                "LocA", "LocB", "LocC", "LocD", "LocE", "LocF", "LocG", "LocH", "LocI", "LocJ", "LocK",
-                                "LocL", "LocM", "LocN", "LocO", "LocP", "LocQ", "LocR", "LocS", "LocT", "LocU")]
-    
-      gen.data2 <- df2genind(X = gen.data, sep=":", ploidy=2, pop=gen.data$pop, ind.names=gen.data$ind)
-      g.out <- popgenreport(gen.data, mk.counts = T, mk.fst = T, mk.allele.dist = T, mk.pdf = F)
-      #write.csv()  
+      # gen.data <- inds
+      # # gen.data$ind <- paste0("NP", gen.data$Nat.Pond, "-BP", gen.data$Breed.Pond, "-", gen.data$Sex, "-", row.names(gen.data))
+      # # gen.data$pop <- paste0("Pond-", gen.data$Breed.Pond)
+      # # gen.data <- gen.data[ , c("ind", "pop", "Patch.X", "Patch.Y", "Sex", "Age",
+      # #                           "LocA", "LocB", "LocC", "LocD", "LocE", "LocF", "LocG", "LocH", "LocI", "LocJ", "LocK",
+      # #                           "LocL", "LocM", "LocN", "LocO", "LocP", "LocQ", "LocR", "LocS", "LocT", "LocU")]
+      # 
+      # gen.data2 <- df2genind(X = gen.data, sep=":", ploidy=2, pop=gen.data$pop, ind.names=gen.data$ind)
+      # g.out <- popgenreport(gen.data, mk.counts = T, mk.fst = T, mk.allele.dist = T, mk.pdf = F)
+      #write.csv()
 ## ------------------
-    
+
     
 ## Plot Demographic Data:
 ## ----------------------
@@ -557,5 +595,22 @@ print(round(Sys.time() - start.time, 2))         ## end timer
     plot(inds$SVL ~ jitter(inds$Age, 1), col=ifelse(inds$Rep.Active==T, "orange", "black"), pch=16, cex=0.75,
          main="Age x SVL x Rep. Active - Final", 
          xlab="Age (years)", ylab="SVL (mm)")
+  
+  ## Plot population sizes across time    
+    pond.output$hydro_class <- as.factor(pond.output$Hydroperiod)
+    
+    p <- ggplot(pond.output, aes(x = Generation, y = N.inds, group = Pond.ID, colour = hydro_class)) +
+          geom_line(aes(linetype = hydro_class), size=1, show.legend = T) +
+          scale_fill_brewer(palette = "Blues")+ #rainbow(length(unique(pond.output$hydro.fact))))+
+          labs(x = "Generation", y = "Number of Individuals") + 
+          ggtitle(expression(atop(bold("Population Size by Hydroperiod Class"), 
+                                  atop("20 ponds, 4 Hydroperiod Classes, 200 Generations")))) +
+          theme_classic()+
+          theme(panel.grid.major.y = element_blank(), 
+                panel.grid.major.x = element_blank(),
+                panel.grid.minor = element_blank(),
+                plot.title = element_text(size = rel(1.5), face = "bold", vjust=1.5),
+                axis.title.y = element_text(face = "bold"), axis.title.x = element_text(face = "bold"))
+    p
     
 ## ----------------------
