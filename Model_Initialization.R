@@ -65,7 +65,7 @@
   ## Pond info:
   ##-------------
 
-  n.ponds <- 20                        ## number of ponds to create
+  n.ponds <- 10                        ## number of ponds to create
   pond.size.mean <- 1                  ## mean size of pond (in 30x30 m grid cells)
   pond.size.sd <- 0                    ## st devation of pond
   pond.hydro.class <- 1                ## number of pond classes (used for hydroperiod later?) --> needed for creating pond.r layer. If changed from "1", throws error in code
@@ -107,7 +107,7 @@
   ## Breeding:
   ##-------------
   n.inds <- 500              ## number of individuals to initialize model with
-  n.gens <- 200              ## number of generations to iterate over 
+  n.gens <- 500              ## number of generations to iterate over 
   ##--------------
   
   ## Demographic info:
