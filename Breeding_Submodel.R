@@ -122,7 +122,7 @@
                      )
   
      inds$Breed.Pond <- inds$Nat.Pond   #ifelse(inds$Disp.Prob > philo.rate, yes=sample(unique(inds$Nat.Pond), 1, T), no=inds$Nat.Pond)
-     inds$Ind.ID <- paste0("N", inds$Nat.Pond, "-B", inds$Breed.Pond, "-G", inds$Generation, "-", rownames(inds))
+     inds$Ind.ID <- paste0("N", inds$Nat.Pond, "-B", inds$Breed.Pond, "-G", inds$Generation, "-", rownames(inds), "-", inds$Sex)
      
      ponds$N.inds <- as.data.frame(table(inds$Breed.Pond))$Freq        ## calculate the number of individuals assigned to each pond
      
@@ -427,7 +427,7 @@ repeat{
     }
   
     off.df <- subset(off.df, is.na(off.df$Breed.Pond) == F)                      ## POTENTIALLY DELETE THIS LATER. DEPENDS ON HOW THE IF STATEMENT EXECUTES ABOVE
-    off.df$Ind.ID <- paste0("N", off.df$Nat.Pond, "-B", off.df$Breed.Pond, "-G", g, "-", rownames(off.df))
+    off.df$Ind.ID <- paste0("N", off.df$Nat.Pond, "-B", off.df$Breed.Pond, "-G", g, "-", rownames(off.df), "-", off.df$Sex)
     # print(plyr::count(die))
     # print(plyr::count(success))
     # print(plot(terrestrial.resident.r))
@@ -481,7 +481,7 @@ repeat{
   ponds[ponds$Pond.ID %in% as.numeric(as.character(unique(as.data.frame(table(inds$Breed.Pond))$Var1))), "N.inds"] <- as.data.frame(table(inds$Breed.Pond))$Freq      ## calculate data for occupied ponds
   ponds[!ponds$Pond.ID %in% as.numeric(as.character(unique(as.data.frame(table(inds$Breed.Pond))$Var1))), "N.inds"] <- 0                                              ## set unoccupied pond counts to zero 
   ponds$Generation <- g
-  print(ponds)
+  # print(ponds)
   
   pond.output <- rbind(pond.output, ponds)             ## print pond counts
   
@@ -504,7 +504,7 @@ print(round(Sys.time() - start.time, 2))         ## end timer
 # ## ------------------
   ## Manipulate data? Export Genepop from gstudio?
     g.magic <- subset(gen.output, Generation == n.gens)                    ## extract generation number from uber array
-    g.magic$Ind.ID <- paste0("N", g.magic$Nat.Pond, "-B", g.magic$Breed.Pond, "-", g.magic$Sex, "-", rownames(g.magic))        ## create an individual ID metric
+    # g.magic$Ind.ID <- paste0(g.magic$Ind.ID, "-", g.magic$Sex)        ## create an individual ID metric
     g.df <- g.magic[ , c("Ind.ID", "Breed.Pond",
                       "LocA", "LocB", "LocC", "LocD", "LocE", "LocF", "LocG", "LocH", "LocI", "LocJ", "LocK",
                       "LocL", "LocM", "LocN", "LocO", "LocP", "LocQ", "LocR", "LocS", "LocT", "LocU")]
@@ -531,7 +531,7 @@ print(round(Sys.time() - start.time, 2))         ## end timer
     boot.ppfis(gen.hier)
     indpca(gen.hier)
    
-    plot(indpca(gen.hier), col=rainbow(20)[as.numeric(gen.hier$pop)], cex = 0.7)
+    plot(indpca(gen.hier), col=rainbow(40)[as.numeric(gen.hier$pop)], cex = 0.7)
    
     # setPop(gen.data) <- ~pop
     # gen_diff <- diff_stats(gen.data)
