@@ -65,7 +65,7 @@
   ## Pond info:
   ##-------------
 
-  n.ponds <- 10                        ## number of ponds to create
+  n.ponds <- 5                        ## number of ponds to create
   pond.size.mean <- 1                  ## mean size of pond (in 30x30 m grid cells)
   pond.size.sd <- 0                    ## st devation of pond
   pond.hydro.class <- 1                ## number of pond classes (used for hydroperiod later?) --> needed for creating pond.r layer. If changed from "1", throws error in code
@@ -93,7 +93,7 @@
                              NA,1, 1, 1,NA),
                            ncol=5, byrow=TRUE)
   
-  max.disp.dist <- 4000                ## maximum dispersal distance (in meters) for creating a buffer --- CHANGED FROM 5000 ON 28 FEB 2019
+  max.disp.dist <- 5000                ## maximum dispersal distance (in meters) for creating a buffer --- CHANGED FROM 5000 ON 28 FEB 2019
   min.disp.dist <- 30                  ## (quick and dirty fix for world wrapping)
   
   new.move <- 30                       ## Step length
@@ -107,7 +107,7 @@
   ## Breeding:
   ##-------------
   n.inds <- 500              ## number of individuals to initialize model with
-  n.gens <- 500              ## number of generations to iterate over 
+  n.gens <- 250              ## number of generations to iterate over 
   ##--------------
   
   ## Demographic info:
@@ -126,6 +126,12 @@
   SVL.4p.mu <- 48.97
   SVL.4p.sd <- 0.01
   
+  mm.a.min <- 106.000015     ## LL 95% Conf Int. for a parameter in Michealis-Menton growth equation
+  mm.a.mean <- 107.828733    ## mean 
+  mm.a.max <- 110.518892     ## UL 95% Conf Int. for a parameter in Michealis-Menton growth equation
+  mm.b.min <- 1.623726       ## LL 95% Conf Int. for b parameter in Michealis-Menton growth equation
+  mm.b.max <- 1.858297       ## UL 95% Conf Int. for b parameter in Michealis-Menton growth equation
+  
   min.age.F <- 2                   ## minimum age for reproduction - females
   min.age.M <- 1                   ## minumum age for reproduction - males
   max.age <- 15                    ## maximum age for all adults (based on winters thesis)
@@ -138,13 +144,15 @@
 
 ## Execute IBM:
 ## ------------
-   ## Initialize landscape Function 
+  ## Initialize landscape Function: 
+    source("Landscape_Submodel.R")
   
-   ## Breed Function
+  ## Breed and Dispersal Functions:
+    source("Breeding_Submodel.R")             ## NOTE: need to remove plotting and genetic data output stuffs
   
-   ## Dipserse Function
+  ## Dipserse Function
   
-   ## Age/Grow/Die
+  ## Age/Grow/Die
   
   
 ## ------------
