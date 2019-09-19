@@ -108,6 +108,7 @@
                      Init.Angle = numeric(n.inds),                                    ## Angle (in degrees) for which individuals leave pond
                      dist.max = numeric(n.inds),                                      ## max dispersal distance
                      Mort.Prob = numeric(n.inds),                                     ## probability of mortality
+                     MM.b = runif(n.inds, mm.b.min, mm.b.max),                        ## set the "b" parameter for michaelis-menten growth
                      LocA=numeric(n.inds), LocB=numeric(n.inds),                      ## genetic info, add number loci equal to input data
                      LocC=numeric(n.inds), LocD=numeric(n.inds), 
                      LocE=numeric(n.inds), LocF=numeric(n.inds),
@@ -236,12 +237,12 @@ repeat{
   for(p in 1:length(pond.list)){
     off.pond <- inds[-c(1:dim(inds)[1]), ]             ## create empty data frame for offspring within each pond
     rep.feme <- subset(inds, Sex == "F" & Rep.Active == T & Age >= min.age.F & 
-                         Breed.Pond == pond.list[p] & SVL >= min.SVL.F)
+                         Breed.Pond == pond.list[p] & SVL >= min.SVL.F)                     ## pull all potential breeding females at pond
     rep.male <- subset(inds, Sex == "M" & Rep.Active == T & Age >= min.age.M & 
-                         Breed.Pond == pond.list[p] & SVL >= min.SVL.M)
+                         Breed.Pond == pond.list[p] & SVL >= min.SVL.M)                     ## pull all potential breeding males at a pond
     
     ## Iterate through reproductive females at each pond
-    if(dim(rep.feme)[1] > 0 & dim(rep.male)[1] > 0){             ## only execute if there is at least 1 reproductive male and 1 reproductive female
+    if(dim(rep.feme)[1] > 0 & dim(rep.male)[1] > 0){             ## only execute if there is at least 1 reproductive male AND 1 reproductive female at the pond
       
       inds$Bred <- ifelse(((inds$Sex=="F" & inds$Rep.Active==T & inds$Breed.Pond==pond.list[p] &
                               inds$SVL>=min.SVL.F & inds$Age>=min.age.F) |
@@ -275,6 +276,7 @@ repeat{
           num.off$dist.max <- rtrunc(n=1, spec="llogis", a=min.disp.dist, b=max.disp.dist,
                                      shape=disp.shape, scale=disp.scale)       ## Peterman et al. 2015 dispersal distance for A. annulatum? 1,693m (95% CI 1,645-1,740 m for AMAN)
           num.off$Mort.Prob <- numeric(n.off)                                  ## empty vector for later imposing mortality 
+          num.off$MM.b <- numeric(n.off)                                       ## michaelis-menten 
           num.off$Bred <- rep(0, times=n.off)                                  ## vector of zeros for breeding
           num.off$Generation <- rep(g, times=n.off)                            ## vector to store generation of origin 
           
@@ -311,7 +313,7 @@ repeat{
         
       }  ## end FEMALES iterations
       
-      ## Impose LARVAL carrying capacity catch.  
+      ## Impose LARVAL carrying capacity catch.   <<---- removed this. was duplicating the mortality catch within the female fecundity parameters
       # if(ponds[ponds$Pond.ID %in% pond.list[p], "Pond.K"] < dim(off.pond)[1]){
       #    off.pond <- off.pond[-sample(x = 1:dim(off.pond)[1], replace=F,
       #                                 size = (dim(off.pond)[1]) - ponds[ponds$Pond.ID %in% pond.list[p], "Pond.K"]), ]
@@ -323,6 +325,8 @@ repeat{
     } ## end IF statement
   
   } ## end POND iterations
+  
+  off.df$MM.b <- runif(dim(off.df)[1], mm.b.min, mm.b.max)            ## set the random "b" parameter of individuals for growth equation
   
   ##########################
   # Dispersal submodel
@@ -445,11 +449,12 @@ repeat{
 ## --------------------
   ## Update demographic information 
   inds$Age <- inds$Age + 1                                                             ## age everybody by one year
-  inds$SVL <- ifelse(inds$Age == 1, yes=0.785 * inds$SVL + 19.9,  
-                     no=ifelse(inds$Age == 2, yes=0.937 * inds$SVL + 7.36, 
-                               no=ifelse(inds$Age == 3, yes=inds$SVL + 2.5, 
-                                         no=ifelse(inds$Age == 4, yes=inds$SVL + 1.5, 
-                                                   no=ifelse(inds$Age >=5, yes=inds$SVL + (inds$Age - 4) * 0.5, no=NA)))))   ## grow individuals based on Taylor and Scott equations
+  inds$SVL <- (mm.a.mean * inds$Age) / (inds$MM.b+inds$Age)                                  ## grow everybody following a michaleis menton
+  # inds$SVL <- ifelse(inds$Age == 1, yes=0.785 * inds$SVL + 19.9,  
+  #                    no=ifelse(inds$Age == 2, yes=0.937 * inds$SVL + 7.36, 
+  #                              no=ifelse(inds$Age == 3, yes=inds$SVL + 2.5, 
+  #                                        no=ifelse(inds$Age == 4, yes=inds$SVL + 1.5, 
+  #                                                  no=ifelse(inds$Age >=5, yes=inds$SVL + (inds$Age - 4) * 0.5, no=NA)))))   ## grow individuals based on Taylor and Scott equations
   
   inds$IBI <- ifelse(inds$Bred == 1, yes = 0, no = inds$IBI + 1)              ## calculate inter-breeding interval
   inds$Generation <- g
@@ -496,7 +501,15 @@ repeat{
 } ## end generations loop 
 print(round(Sys.time() - start.time, 2))         ## end timer
 
-# gen.magic <- magic_result()                        ## stores all the individual data in a pseudo array, can access by calling gen.magic[[generation number]]
+
+## Plot Final Residence Layer:
+  plot(ls[[3]], main="Final Resident Layer (post loop)", #terrestrial.resident.r, 
+       xlim=c(-690,3690), ylim=c(-690,3690))#, 
+       # breaks=c(0,1,10,25,50,100,180),
+       # col=c("black", "grey", "tan", "yellow", "orange", "red", "purple")) 
+  points(ponds$Pond.X, ponds$Pond.Y, cex=1, col="blue", pch=16)
+  points(ponds$Pond.X, ponds$Pond.Y, cex=2, lwd=3, col=ponds$Pond.ID, pch=ponds$Pond.ID) 
+  with(subset(inds, subset=inds$Breed.Pond!=inds$Nat.Pond), points(Patch.X, Patch.Y, cex=1, col=Nat.Pond, pch=Breed.Pond))
 ## --------------------
   
 
